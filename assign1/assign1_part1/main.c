@@ -87,12 +87,13 @@ int main(int argc, char **argv)
   const char *prog_name = *argv;
   char * filename;
   out = stdout;
-  WordCountEntry entries[5];
+  WordCountEntry *entries = (WordCountEntry*) malloc((argc - 1) * sizeof(WordCountEntry));
   int entryCount = 0;
 
   /* Entry point for the testrunner program */
   if (argc > 1 && !strcmp(argv[1], "-test")) {
     run_smp0_tests(argc - 1, argv + 1);
+    free(entries);
     return EXIT_SUCCESS;
   }
   argv++; //Shift pointer to first word after program name
@@ -123,6 +124,7 @@ int main(int argc, char **argv)
   if (entryCount == 0) {
     fprintf(stderr,"%s: Please supply at least one word. Use -h for help.\n",
            prog_name);
+           free(entries);
     return EXIT_FAILURE;
   }
   if (entryCount == 1) {
@@ -133,5 +135,6 @@ int main(int argc, char **argv)
 
   process_stream(entries, entryCount);
   print_result(entries, entryCount);
+  free(entries);
   return EXIT_SUCCESS;
 }
