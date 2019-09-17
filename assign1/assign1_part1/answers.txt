@@ -1,0 +1,45 @@
+Pointers:
+1)
+The variable temp is simply a character pointer. It does not point to any assigned memory space to hold a string of characters so strcpy fails.
+
+2)
+The "./" in the command call are included in arg[0] hence its string length is 11 and not 9. temp can only hold a character string of 9 or less.
+
+3)
+buffer is pointing at a string constant. The value of a constant cannot be changed hence strcpy does not work. buffer needs to be a modifiable space like a character array or string type.
+
+4)
+This is correct as buffer points to a character array and thus can store the value word that strcpy copies into it. A simpler expression is " char *buffer = &b" as an array name acts as a pointer to the 1st element.
+
+5)*
+output: program1 5 abc
+
+6)
+buffer is a local variable to myfunc. Once this function ends the variable goes out of scope and the pointer to it is lost causing a segmentation fault.
+PS: The parameter argv in myfunc() is never actually used inside the function.
+
+
+Debugging:
+1)
+strcmp() returns a value of zero if two words are identical (which is what we want). Inside the if statement, zero(8 0-bits) is interpreted as false, hence we not with "!" to make it true (8 1-bits).
+
+2)
+The sizeof() operator used in lngth returns the size in bytes of the memory pointed to by s. So sizeof(s) returns the size the array in bytes. sizeof(*s) returns the size allocated to a single data entry (in this case the 1st entry) of s. Hence [total bytes in s]/[bytes per entry] gives array length.
+
+3)*
+There should be a break or exit from the function or else the code will run the default section if the switch.
+
+4)
+The program call "./<programName>" is the first argument. If we do not shift argv before we begin looking for entries, this will be taken as the first key word.
+
+5)
+Added line to increment the entries pointer at end of each loop.
+
+
+
+Enhancements:
+1)*(Should stdout also use fprintf or is printf okay)
+2)*(Should terminal still print output?) 
+3)
+4)
+5)

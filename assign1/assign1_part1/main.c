@@ -28,7 +28,7 @@ Expected output:
 #include "smp0_tests.h"
 
 #define LENGTH(s) (sizeof(s) / sizeof(*s))
-
+FILE *out;
 /* Structures */
 typedef struct {
   char *word;
@@ -36,7 +36,7 @@ typedef struct {
 } WordCountEntry;
 
 /** 
-* @brief     Searces the input stream for occurences of search words
+* @brief     Searches the input stream for occurences of search words
 **/
 int process_stream(WordCountEntry entries[], int entry_count)
 {
@@ -61,23 +61,32 @@ int process_stream(WordCountEntry entries[], int entry_count)
 
 void print_result(WordCountEntry entries[], int entry_count)
 {
-  printf("Result:\n");
+  //FILE* out;
+  fprintf(out,"Result:\n");
   while (entry_count-- > 0) {
-    printf("%s:%d\n", entries->word, entries->counter);
+    fprintf(out,"%s:%d\n", entries->word, entries->counter);
+    entries++;//increment entries for as long as there are still entries
   }
 }
 
-
+/**
+ * @brief   Prints how the function is used
+ **/
 void printHelp(const char *name)
 {
-  printf("usage: %s [-h] <word1> ... <wordN>\n", name);
+  fprintf(stderr,"usage: %s [OPTION...] <word1> ... <wordN>\n\n", name);
+  fprintf(stderr, "OPTION:\n");
+  fprintf(stderr,"-h \t\t\t\t (For help)\n");
+  fprintf(stderr,"-f, file=FILENAME\t\t (Outputs to te file FILENAME)\n");
+  //fprintf(stderr,"usage: %s [-h] <word1> ... <wordN>\n", name);
 }
 
 
 int main(int argc, char **argv)
 {
   const char *prog_name = *argv;
-
+  char * filename;
+  out = stdout;
   WordCountEntry entries[5];
   int entryCount = 0;
 
@@ -86,19 +95,25 @@ int main(int argc, char **argv)
     run_smp0_tests(argc - 1, argv + 1);
     return EXIT_SUCCESS;
   }
-
+  argv++; //Shift pointer to first word after program name
   while (*argv != NULL) {
     if (**argv == '-') {
       // "-" represents overide case to use specific function/test
       switch ((*argv)[1]) {
+        case 'f':
+          filename = *argv + 2;
+          out = fopen(filename,"w");
+          fprintf(stderr,"Outputting to file: %s\n",filename);
+          break;
         case 'h':
           printHelp(prog_name);
+          break;
         default:
-          printf("%s: Invalid option %s. Use -h for help.\n",
+          fprintf(stderr,"%s: Invalid option %s. Use -h for help.\n",
                  prog_name, *argv);
       }
     } else { //Start capturing words
-      if (entryCount < LENGTH(entries)) {
+      if (entryCount < argc - 1) {//No loner uses Length macro as sizeof cannot read dynamically allocated arrays
         entries[entryCount].word = *argv;
         entries[entryCount++].counter = 0;
       }
@@ -106,18 +121,17 @@ int main(int argc, char **argv)
     argv++;
   }
   if (entryCount == 0) {
-    printf("%s: Please supply at least one word. Use -h for help.\n",
+    fprintf(stderr,"%s: Please supply at least one word. Use -h for help.\n",
            prog_name);
     return EXIT_FAILURE;
   }
   if (entryCount == 1) {
-    printf("Looking for a single word\n");
+    fprintf(out,"Looking for a single word\n");
   } else {
-    printf("Looking for %d words\n", entryCount);
+    fprintf(out,"Looking for %d words\n", entryCount);
   }
 
   process_stream(entries, entryCount);
   print_result(entries, entryCount);
-
   return EXIT_SUCCESS;
 }
