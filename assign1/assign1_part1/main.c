@@ -43,9 +43,10 @@ int process_stream(WordCountEntry entries[], int entry_count)
   short line_count = 0;
   char buffer[30];
 
-  while (gets(buffer)) {
+  while (fgets(buffer,30,stdin)) {
     if (*buffer == '.')
-      break;
+      break; 
+    buffer[strlen(buffer) - 1] = '\0';//Accounting for enline character. Assumes only 1 word per line.
     /* Compare against each entry */
     int i = 0;
     while (i < entry_count) {
