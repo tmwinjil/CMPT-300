@@ -60,7 +60,8 @@ int main(int argc, char **argv)
 	char buffer[SHELL_BUFFER_SIZE];
 	/* exec_argv: Arguments passed to exec call including NULL terminator. */
 	char *exec_argv[SHELL_MAX_ARGS + 1];
-
+	const char *path = "/bin/";
+	char command[15];
 	/* Entrypoint for the testrunner program */
 	if (argc > 1 && !strcmp(argv[1], "-test")) {
 		return run_smp1_tests(argc - 1, argv + 1);
@@ -128,7 +129,6 @@ int main(int argc, char **argv)
 		/* Execute Commands */
 			/* Try replacing 'fork()' with '0'.  What happens? */
 			pid_from_fork = fork();
-
 			if (pid_from_fork < 0) {
 				/* Error: fork() failed.  Unlikely, but possible (e.g. OS *
 				 * kernel runs out of memory or process descriptors).     */
@@ -136,7 +136,9 @@ int main(int argc, char **argv)
 				continue;
 			}
 			if (pid_from_fork == 0) {
-				return imthechild(exec_argv[0], &exec_argv[0]);
+				strcpy(command, (*(exec_argv[0]) == '/') ? "":path); //Insert path "/bin/ls" if it is not already present
+				strcat(command, exec_argv[0]);
+				return imthechild(command, &exec_argv[0]);
 				/* Exit from main. */
 			} else {
 				imtheparent(pid_from_fork, run_in_background);
