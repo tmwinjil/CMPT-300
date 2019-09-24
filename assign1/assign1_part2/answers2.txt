@@ -23,7 +23,7 @@ Yes we can run multiple instances of the shell (I tried 3) inside our shell. The
 The count immediately stops and the shell exits in both cases.
 
 9.
-Yes a shell can kill itself. A shell cannot kill the parent shell
+Yes a shell can kill itself. A shell within a shell can kill the parent, but this will result in the exit of the shell within the shell as well. However, the process will still be visible to the ps command so it may simply be pushed to the background
 
 10.
 when we exit the background process will continue running and we can see it with the ps command
