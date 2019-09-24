@@ -56,6 +56,7 @@ int main(int argc, char **argv)
 {
 	pid_t shell_pid, pid_from_fork;
 	int n_read, i, exec_argc, parser_state, run_in_background;
+	int command_count = 1;
 	/* buffer: The Shell's input buffer. */
 	char buffer[SHELL_BUFFER_SIZE];
 	/* exec_argv: Arguments passed to exec call including NULL terminator. */
@@ -73,7 +74,7 @@ int main(int argc, char **argv)
 	while (1) {
 	/* The Shell runs in an infinite loop, processing input. */
 
-		fprintf(stdout, "Shell(pid=%d)> ", shell_pid);
+		fprintf(stdout, "Shell(pid=%d)%d> ", shell_pid,command_count);
 		fflush(stdout);
 
 		/* Read a line of input. */
@@ -129,6 +130,7 @@ int main(int argc, char **argv)
 		/* Execute Commands */
 			/* Try replacing 'fork()' with '0'.  What happens? */
 			pid_from_fork = fork();
+			command_count++;
 			if (pid_from_fork < 0) {
 				/* Error: fork() failed.  Unlikely, but possible (e.g. OS *
 				 * kernel runs out of memory or process descriptors).     */
