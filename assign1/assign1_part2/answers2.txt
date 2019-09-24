@@ -1,0 +1,29 @@
+1.
+The cd (or chdir) command changes the unique "Working Directory" parameter of the process that executes it. If implemented externally a new process would be spawned to run the cd command and the cd would in turn change the address of the process that called it(the new process)then exit, but would not change the directory of the parent process it was called by (because they are seperate processes). 
+
+2.
+The shell uses the chdir command to change the path given by the user into a specific working directory that can be set as the current processes working directory, then assigns this new PATH to the processes working directory.
+
+3.
+If we do not use the fork command no copy of the program executes and the program will end after executing the command. This is because execv() replaces the current process image with the one declared to be executed, so our shell will essentially be terminated. Hence why we need the fork() to create a copy that will not run the exec comand but rather comtinue after the command is executed.  
+
+4.
+The return value of fork is either -1, 0 or the pid of the successfully created child process that is a copy of the current process dowwn to the trace that will run in parallel with the parent. If fork returns a positive pid it implies the parent successfully created the child and hence the current process knows it is the parent and can execute accordingly. If fork() returns 0 it means that no copy was created from this process and no error was encountered hence the current process is the copy (child) and should thus execute the instruction input. 
+
+5.
+The working directory of our parent shell would never change. Only the newly created processes working directory will change and the process will exit. No matter how many times we run it cd  would not affect our current parent shell.
+
+6.
+We can run multiple versions. Their output is tracked by the pid and their counts remain relatively the same (each countdown happens independently but are all printed in the terminal.
+
+7.
+Yes we can run multiple instances of the shell (I tried 3) inside our shell. The shell most recently called will take the instructions and run them (But will not affect the parent shells it was called by.
+
+8.
+The count immediately stops and the shell exits in both cases.
+
+9.
+Yes a shell can kill itself. A shell cannot kill the parent shell
+
+10.
+when we exit the background process will continue running and we can see it with the ps command

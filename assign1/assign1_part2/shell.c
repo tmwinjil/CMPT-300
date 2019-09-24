@@ -79,8 +79,8 @@ int main(int argc, char **argv)
 		if (fgets(buffer, SHELL_BUFFER_SIZE, stdin) == NULL)
 			return EXIT_SUCCESS;
 		n_read = strlen(buffer);
-		run_in_background = n_read > 2 && buffer[n_read - 2] == '&';
-		buffer[n_read - run_in_background - 1] = '\n';
+		run_in_background = n_read > 2 && buffer[n_read - 2] == '&';//TK:&Character at endof command signifies to run in background
+		buffer[n_read - run_in_background - 1] = '\n';//TK:Places end line character after command or as replacement for '&'
 
 		/* Parse the arguments: the first argument is the file or command *
 		 * we want to run.                                                */
@@ -122,7 +122,7 @@ int main(int argc, char **argv)
 			if (chdir(exec_argv[1]))
 				/* Error: change directory failed */
 				fprintf(stderr, "cd: failed to chdir %s\n", exec_argv[1]);	
-			/* End alternative: exit(EXIT_SUCCESS);} */
+			/* End alternative: exit(EXIT_SUCCESS);}*/ 
 
 		} else {
 		/* Execute Commands */
