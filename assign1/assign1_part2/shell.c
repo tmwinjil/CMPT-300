@@ -50,19 +50,28 @@ void imtheparent(pid_t child_pid, int run_in_background)
 		        child_pid, child_error_code);
 	}
 }
-
+void destroy(char** history, int size)
+{
+	for (int i = 0; i < size - 1; i++)
+		free(history[i]);
+	free(history);
+}
 /* MAIN PROCEDURE SECTION */
 int main(int argc, char **argv)
 {
 	pid_t shell_pid, pid_from_fork;
 	int n_read, i, exec_argc, parser_state, run_in_background;
 	int command_count = 1;
+	int history_size = SHELL_MAX_ARGS;
 	/* buffer: The Shell's input buffer. */
 	char buffer[SHELL_BUFFER_SIZE];
 	/* exec_argv: Arguments passed to exec call including NULL terminator. */
 	char *exec_argv[SHELL_MAX_ARGS + 1];
 	const char *path = "/bin/";
 	char command[15];
+	//Create history888888888888888888888888888888888888
+	char **history = (char**) malloc((SHELL_MAX_ARGS + 1) * sizeof(char*));
+	
 	/* Entrypoint for the testrunner program */
 	if (argc > 1 && !strcmp(argv[1], "-test")) {
 		return run_smp1_tests(argc - 1, argv + 1);
@@ -72,14 +81,14 @@ int main(int argc, char **argv)
 	shell_pid = getpid();
 
 	while (1) {
-	/* The Shell runs in an infinite loop, processing input. */
-
 		fprintf(stdout, "Shell(pid=%d)%d> ", shell_pid,command_count);
 		fflush(stdout);
 
 		/* Read a line of input. */
-		if (fgets(buffer, SHELL_BUFFER_SIZE, stdin) == NULL)
+		if (fgets(buffer, SHELL_BUFFER_SIZE, stdin) == NULL){
+			free(history);
 			return EXIT_SUCCESS;
+		}
 		n_read = strlen(buffer);
 		run_in_background = n_read > 2 && buffer[n_read - 2] == '&';//TK:&Character at endof command signifies to run in background
 		buffer[n_read - run_in_background - 1] = '\n';//TK:Places end line character after command or as replacement for '&'
@@ -116,6 +125,7 @@ int main(int argc, char **argv)
 		/* If Shell runs 'exit' it exits the program. */
 		if (!strcmp(exec_argv[0], "exit")) {
 			printf("Exiting process %d\n", shell_pid);
+			destroy(history,command_count);
 			return EXIT_SUCCESS;	/* End Shell program */
 
 		} else if (!strcmp(exec_argv[0], "cd") && exec_argc > 1) {
@@ -127,6 +137,19 @@ int main(int argc, char **argv)
 			/* End alternative: exit(EXIT_SUCCESS);}*/ 
 
 		} else {
+			if (command_count < 10) {
+				history[command_count - 1] = malloc(strlen(exec_argv[0]));
+				strcpy(history[command_count - 1], exec_argv[0]);
+				}
+				while (*exec_argv[0] == '!') {
+					int index = atoi(exec_argv[0] + 1);
+					if (index > command_count || index <=0) {
+						fprintf(stderr,"Not valid");
+						break;
+					}else{
+						strcpy(exec_argv[0], history[index - 1]);
+					}
+				}
 		/* Execute Commands */
 			/* Try replacing 'fork()' with '0'.  What happens? */
 			pid_from_fork = fork();
@@ -140,6 +163,7 @@ int main(int argc, char **argv)
 			if (pid_from_fork == 0) {
 				strcpy(command, (*(exec_argv[0]) == '/') ? "":path); //Insert path "/bin/ls" if it is not already present
 				strcat(command, exec_argv[0]);
+				destroy(history,command_count);
 				return imthechild(command, &exec_argv[0]);
 				/* Exit from main. */
 			} else {
@@ -148,6 +172,6 @@ int main(int argc, char **argv)
 			}
 		} /* end if */
 	} /* end while loop */
-
+	destroy(history, command_count);
 	return EXIT_SUCCESS;
 } /* end main() */
