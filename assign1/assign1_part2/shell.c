@@ -37,7 +37,7 @@ void imtheparent(pid_t child_pid, int run_in_background)
 		        "  Parent says 'run_in_background=1 ... so we're not waiting for the child'\n");
 		return;
 	}
-	wait(&child_return_val);
+	waitpid(child_pid, &child_return_val);
 	/* Use the WEXITSTATUS to extract the status code from the return value */
 	child_error_code = WEXITSTATUS(child_return_val);
 	fprintf(stderr,
@@ -72,7 +72,7 @@ int main(int argc, char **argv)
 	const char *path = "/bin/";
 	/*command: Result of appending path should it be necessary*/
 	char command[15];
-	/*history: Dynamically allocated history of commands*/
+	/*history: Dynamically allocated history of commands(max 9 commands)*/
 	char **history = malloc((SHELL_MAX_ARGS + 1) * sizeof(char*));
 	
 	/* Entrypoint for the testrunner program */
