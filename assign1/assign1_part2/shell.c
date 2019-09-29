@@ -52,8 +52,9 @@ void imtheparent(pid_t child_pid, int run_in_background)
 }
 void destroy(char** history, int size)
 {
-	for (int i = 0; i < size - 1; i++)
-		free(history[i]);
+	for (int i = 0; i < size - 1; i++) {
+			free(history[i]);
+	}
 	free(history);
 }
 /* MAIN PROCEDURE SECTION */
@@ -67,10 +68,12 @@ int main(int argc, char **argv)
 	char buffer[SHELL_BUFFER_SIZE];
 	/* exec_argv: Arguments passed to exec call including NULL terminator. */
 	char *exec_argv[SHELL_MAX_ARGS + 1];
+	/*Path: Appended to the front of commands with no path declared*/
 	const char *path = "/bin/";
+	/*command: Result of appending path should it be necessary*/
 	char command[15];
-	//Create history888888888888888888888888888888888888
-	char **history = (char**) malloc((SHELL_MAX_ARGS + 1) * sizeof(char*));
+	/*history: Dynamically allocated history of commands*/
+	char **history = malloc((SHELL_MAX_ARGS + 1) * sizeof(char*));
 	
 	/* Entrypoint for the testrunner program */
 	if (argc > 1 && !strcmp(argv[1], "-test")) {
@@ -86,13 +89,27 @@ int main(int argc, char **argv)
 
 		/* Read a line of input. */
 		if (fgets(buffer, SHELL_BUFFER_SIZE, stdin) == NULL){
-			free(history);
+			destroy(history, command_count);
 			return EXIT_SUCCESS;
 		}
 		n_read = strlen(buffer);
 		run_in_background = n_read > 2 && buffer[n_read - 2] == '&';//TK:&Character at endof command signifies to run in background
 		buffer[n_read - run_in_background - 1] = '\n';//TK:Places end line character after command or as replacement for '&'
 
+		//Check to see if the buffer holds a recall instruction
+		if(*buffer == '!') {
+			int index = atoi(buffer + 1);
+			if (index >= command_count || index <=0) {
+						fprintf(stderr,"Not valid");
+						continue;
+					}else{
+						strcpy(buffer, history[index - 1]);
+						history[command_count - 1] = history[index - 1];
+					}
+		}else if(strlen(buffer) > 2) {//Command must be at least a 2 letter command and the newline character
+			history[command_count - 1] = malloc(strlen(buffer) + 1);
+			strcpy(history[command_count - 1],buffer);
+		}
 		/* Parse the arguments: the first argument is the file or command *
 		 * we want to run.                                                */
 
@@ -119,6 +136,9 @@ int main(int argc, char **argv)
 		/* If no command was given (empty line) the Shell just prints the prompt again */
 		if (!exec_argc)
 			continue;
+		else //If command was provided, update history and increment command counter
+			command_count++; 
+		
 		/* Terminate the list of exec parameters with NULL */
 		exec_argv[exec_argc] = NULL;
 
@@ -137,23 +157,9 @@ int main(int argc, char **argv)
 			/* End alternative: exit(EXIT_SUCCESS);}*/ 
 
 		} else {
-			if (command_count < 10) {
-				history[command_count - 1] = malloc(strlen(exec_argv[0]));
-				strcpy(history[command_count - 1], exec_argv[0]);
-				}
-				while (*exec_argv[0] == '!') {
-					int index = atoi(exec_argv[0] + 1);
-					if (index > command_count || index <=0) {
-						fprintf(stderr,"Not valid");
-						break;
-					}else{
-						strcpy(exec_argv[0], history[index - 1]);
-					}
-				}
 		/* Execute Commands */
 			/* Try replacing 'fork()' with '0'.  What happens? */
 			pid_from_fork = fork();
-			command_count++;
 			if (pid_from_fork < 0) {
 				/* Error: fork() failed.  Unlikely, but possible (e.g. OS *
 				 * kernel runs out of memory or process descriptors).     */
