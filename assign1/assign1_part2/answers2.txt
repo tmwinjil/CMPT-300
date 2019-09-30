@@ -20,10 +20,31 @@ We can run multiple versions. Their output is tracked by the pid and their count
 Yes we can run multiple instances of the shell (I tried 3) inside our shell. The shell most recently called will take the instructions and run them (But will not affect the parent shells it was called by.
 
 8.
-The count immediately stops and the shell exits in both cases.
+The count immediately stops and the shell exits in both cases. This is because termination of the parent process results in the termination of all its spawned processes.
 
 9.
 Yes a shell can kill itself. A shell within a shell can kill the parent, but this will result in the exit of the shell within the shell as well. However, the process will still be visible to the ps command so it may simply be pushed to the background
 
 10.
-when we exit the background process will continue running and we can see it with the ps command
+when we exit the background process will continue running and we can see it with the ps command. This may be because no signal has been setup to the background process to terminate it once the parent process had been terminated.
+
+
+Modifications:
+1.
+Added path variable that gets added to any command that does not begin with a '.' or a '/'
+
+2.
+added a command counter(command_count) that incremets when argc > 0. Also modified print statement to include command count.
+
+3.
+Created an array of strings history to hold previous commands. New commands are dynamically allocated space while command recalls with '!' point to address of previous command. Created function destroy() to free memory used by history. Currently static but can be made dynamic to hold a larger history.
+
+4.
+changed function
+
+5.
+Added block of code to differentiate sub from other commands executed.
+Used getpid to change pid for each subshell.
+
+6.
+Added a level counter to track subshell level. Added definition MAX_SHELL_LEVEL to check if maximum subshell level was reached.

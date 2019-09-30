@@ -175,7 +175,7 @@ int main(int argc, char **argv)
 			}
 			if (pid_from_fork == 0) {
 				shell_level++; //increment the shell level
-				shell_pid++;  //Increment the forked shell's pid as it would normally be shown for the parent
+				shell_pid = getpid();  //display the correct pid of subshell;
 				command_count--; //maintain command count when forking to subshell
 				free(history[command_count - 1]);
 			}else{
@@ -194,7 +194,7 @@ int main(int argc, char **argv)
 				continue;
 			}
 			if (pid_from_fork == 0) {
-				strcpy(command, (*(exec_argv[0]) == '/') ? "":path); //Insert path "/bin/ls" if it is not already present
+				strcpy(command, ((*(exec_argv[0]) == '/') || *(exec_argv[0]) == '.') ? "":path); //Insert path "/bin/ls" if it is not already present
 				strcat(command, exec_argv[0]);
 				destroy(history,command_count);
 				return imthechild(command, &exec_argv[0]);
