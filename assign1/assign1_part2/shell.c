@@ -52,12 +52,15 @@ void imtheparent(pid_t child_pid, int run_in_background)
 		        child_pid, child_error_code);
 	}
 }
-void destroy(char** history, int size)
+
+/**Function to free memory for any array of dynamically allocated objects
+ * (written by myself:TAKUNDA MWINJILO)
+ **/
+void destroy(void** arr, int size)
 {
 	for (int i = 0; i < size - 1; i++) {
-			free(history[i]);
+			free(arr[i]);
 	}
-	free(history);
 }
 /* MAIN PROCEDURE SECTION */
 int main(int argc, char **argv)
@@ -75,9 +78,8 @@ int main(int argc, char **argv)
 	const char *path = "/bin/";
 	/*command: Result of appending path should it be necessary*/
 	char command[15];
-	/*history: Dynamically allocated history of commands(max 9 commands)*/
-	char **history = malloc(HISTORY_SIZE * sizeof(char*));
-	
+	/*history: Array of strings containing previously called commands and their inputs (max size 9)*/
+	char *history[HISTORY_SIZE];
 	/* Entrypoint for the testrunner program */
 	if (argc > 1 && !strcmp(argv[1], "-test")) {
 		return run_smp1_tests(argc - 1, argv + 1);
