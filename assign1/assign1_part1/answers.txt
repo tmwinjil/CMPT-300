@@ -26,7 +26,7 @@ strcmp() returns a value of zero if two words are identical (which is what we wa
 2)
 The sizeof() operator used in lngth returns the size in bytes of the memory pointed to by s. So sizeof(s) returns the size the array in bytes. sizeof(*s) returns the size allocated to a single data entry (in this case the 1st entry) of s. Hence [total bytes in s]/[bytes per entry] gives array length.
 
-3)*
+3)
 There should be a break or exit from the function or else the code will run the default section if the switch.
 
 4)
@@ -34,12 +34,3 @@ The program call "./<programName>" is the first argument. If we do not shift arg
 
 5)
 Added line to increment the entries pointer at end of each loop.
-
-
-
-Enhancements:
-1)*(Should stdout also use fprintf or is printf okay)
-2)*(Should terminal still print output?) 
-3)
-4)
-5)
