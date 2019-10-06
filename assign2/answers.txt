@@ -1,0 +1,7 @@
+Part 1:
+
+1)
+Our program requires a shared resource to be modified while being supervised. If we used multiple processes we would have to create copies of the string variable meaning the changes that other processes make woul dnot be seen. With threads, we can all modify the same variable as they share a memory space. Using threads fot this process is more efficient.
+
+2)
+workperformed is a global variable that all the  threads can see. It is used to signify that a thread is currently swapping characters. This can help prevent another thread from touching the section that i sbeing swapped until work_performed is set back to 0.
