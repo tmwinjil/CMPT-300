@@ -1,7 +1,49 @@
-Part 1:
+					Part 1:
+part a)
 
 1)
 Our program requires a shared resource to be modified while being supervised. If we used multiple processes we would have to create copies of the string variable meaning the changes that other processes make woul dnot be seen. With threads, we can all modify the same variable as they share a memory space. Using threads fot this process is more efficient.
 
 2)
-workperformed is a global variable that all the  threads can see. It is used to signify that a thread is currently swapping characters. This can help prevent another thread from touching the section that i sbeing swapped until work_performed is set back to 0.
+workperformed is a global variable that all the  threads can modify. It is used to signify that a thread has or is in the process of swapping a character. Only when no thread has made a swap do we know that the whole strig is now in order.
+
+3)
+fp is a 'Function Pointer'. More specifically, fp is a pointer to a function that takes any type of pointer as an input, and returns a general purpose pointer to an object or variable.It allows us to pass a fuction for the threads to start.
+
+part b)
+ 1)
+Instruction said to make a while loop for please_quit !=0. Made the loop for pleasequit == 0 as the threads should run until the main process requests they stop by setting please_quit = 1.
+ 
+2)
+Moved the allocation of memory of info into the loop so that each thread has its own info rather than them all sharinf=g the same variable.
+
+3)
+replaced 1st whatgoes here with rv which holds result of join_enzymes and the other 2 with the relevant parts of status.
+
+4)
+currently passes all tests in the new testrunner provided
+
+Questions:
+1)
+We do not use detach because we need the join_enzyme function to wait for all threads to cancel or terminate so that we can collect their swap counts. If we use detach, the main thread will not wait for the other threads to terminate. and thus may collect a swapcount before all swaps are completed.
+Because the sleeper thread is independent of all the other processes, it can be detached without affecting the main program. Even if it is detached it will still call exit and terminate the program if it awakes(regardless of if it is detached or not.
+
+2)
+The program uses sched_yield to release the processor for use by ther threads. If we did not use this, the first few enzymes in the function could hold the processor fora long time until that section of the word is sorted then would only release the processor after they have exited (but the entire word would not be sorted as the last sections of the string would not be processed yet). With sched_yield, each enzyme(thread) is given an opportunity to sort on each round ensuring that the entire word is sorted.
+
+3)
+This is because cancelled threads do not have their info dereferenced(i.e they do not return a data structure with swapcount), so we cannot access the data they had.
+
+4)
+A thread can only join with a terminated thread. if join() is called by its thread on itself, it will be waiting indefinitely for itself to end, therefore, it enters a state of deadlock. The OS prevents the deadlock from continuing and generates an error.
+
+5)
+The sleeper thread runs independently to the rest of the program. It will sleep for a certain amount of time and if it wakes up, it will end the program. This prevents the program from being caught in an infinite loop.
+
+6)
+This is so that our threads cancel one at a time until the C is at the front of our string, rather than all at once.
+
+7)
+Only one thread_info variable is collected so currently all of the threads would change the shared thread variable. This would cause 2 issues:
+-the swapcount would be initialized multiple times(thread 10 could initialize a swapcount that has already been incremented)
+-the threads would all work on the same section of the string as the string variable would be the same for all strings.

@@ -130,6 +130,7 @@ int test_swap_count_workperformed3(int argc, char **argv) {
 	pthread_create(&tid, NULL,run_enzyme,&data );
 	void * result;
 	sched_yield();
+	sleep(1);
 	please_quit=1;
 	int r=pthread_join(tid, &result);
 	quit_if(r != 0 || result !=  &data) ;
@@ -146,6 +147,7 @@ int test_swap_count_workperformed1(int argc, char**argv) {
 	pthread_t tid;
 	pthread_create(&tid, NULL,run_enzyme,&data );
 	sched_yield();
+	sleep(1);
 	please_quit=1;
 	void * result;
 	int r=pthread_join(tid, &result);
@@ -162,6 +164,7 @@ int test_swap_count_workperformed2(int argc, char**argv) {
 	pthread_t tid;
 	pthread_create(&tid, NULL,run_enzyme,&data );
 	sched_yield();
+	sleep(1);
 	please_quit=1;
 	void * result;
 	int r=pthread_join(tid, &result);
@@ -176,7 +179,9 @@ int test_cancelenzyme(int argc, char**argv) {
 	thread_info_t data = {strdup("C"),0};
 	pthread_t tid;
 	pthread_create(&tid, NULL,run_enzyme,&data );
-		sched_yield();please_quit=1;
+	sched_yield();
+	sleep(1);
+	please_quit=1;
 	void* result;
 	int r=pthread_join(tid, &result);
 	if(r!= 0 ) return EXIT_FAILURE;
@@ -201,6 +206,7 @@ int test_run_enzyme(int argc, char **argv) {
 	sched_yield();
 	sleep(1);
 	sched_yield();
+	sleep(1);
 	please_quit = 1;
 	void* results[3];
 	pthread_join(tid[0], &results[0]);

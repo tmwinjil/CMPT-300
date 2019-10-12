@@ -1,5 +1,5 @@
 #include "enzyme.h"
-
+//#define DEBUG
 int please_quit;
 int use_yield;
 int workperformed;
@@ -18,27 +18,25 @@ void *run_enzyme(void *data)
 		If "use_yield" is nonzero then call pthread_yield at the end of the loop.
 	7. Return a pointer to the updated structure.
 	*/
-	char temp;
-	thread_info_t* thread = (thread_info_t*)data;
-	thread->swapcount = 0;
+	thread_info_t *thread_data = (thread_info_t*)data;
+	thread_data->swapcount = 0;
 	pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS,NULL);
 
-	if (thread->string[0] == 'C') {
+	if(thread_data->string[0] == 'C')
 		pthread_cancel(pthread_self());
-	}
 
-	while(please_quit) {
-		if (thread->string[0] > thread->string[1]) {
+	while(!please_quit) {
+		if(thread_data->string[0] > thread_data->string[1]) {
 			workperformed = 1;
-			thread->swapcount++;
-			temp = thread->string[1];
-			thread->string[1] = thread->string[0];
-			thread->string[0] = temp;
+			thread_data->swapcount++;
+			char temp = thread_data->string[0];
+			thread_data->string[0] = thread_data->string[1];
+			thread_data->string[1] = temp;
 		}
 		if(use_yield)
 			sched_yield();
-	};
-	return thread;
+	}
+	return (void*)thread_data;
 }
 
 
@@ -47,17 +45,17 @@ void *run_enzyme(void *data)
 // There is a memory bug in this function.
 int make_enzyme_threads(pthread_t * enzymes, char *string, void *(*fp)(void *)) {
 	int i,rv,len;
-	thread_info_t *info;
+	thread_info_t *info;	
 	len = strlen(string);
-	info = (thread_info_t *)malloc(sizeof(thread_info_t));
 
 	for(i=0;i<len-1;i++) {
+		info = (thread_info_t *)malloc(sizeof(thread_info_t));
 	    info->string = string+i;
 	    rv = pthread_create(enzymes+i,NULL,fp,info);
 	    if (rv) {
 	        fprintf(stderr,"Could not create thread %d : %s\n",
 			i,strerror(rv));
-		exit(1);
+			exit(1);
 	    }
 	}  
 	return len-1;
@@ -71,24 +69,23 @@ int make_enzyme_threads(pthread_t * enzymes, char *string, void *(*fp)(void *)) 
 int join_on_enzymes(pthread_t *threads, int n) {
 	int i;
 	int totalswapcount = 0;
-	int whatgoeshere=0; // just to make the code compile 
+	//int whatgoeshere=0; // just to make the code compile 
 	                    // you will need to edit the code below
 	for(i=0;i<n;i++) {
 	    void *status;
 	    int rv = pthread_join(threads[i],&status);
-
-        if(whatgoeshere) {
+        if(rv) {
 	    fprintf(stderr,"Can't join thread %d:%s.\n",i,strerror(rv));
 	    continue;
-	}
+		}
 
-	if ((void*)whatgoeshere == PTHREAD_CANCELED) {
+	if (status == PTHREAD_CANCELED) {
 	    continue;
 	} else if (status == NULL) {
 	    printf("Thread %d did not return anything\n",i);
 	    } else {
 	      printf("Thread %d exited normally: ",i);// Don't change this line
-	      int threadswapcount = whatgoeshere; 
+	      int threadswapcount = ((thread_info_t*)status)->swapcount;
 	      // Hint - you will need to cast something.
 	      printf("%d swaps.\n",threadswapcount); // Don't change this line
 	      totalswapcount += threadswapcount;// Don't change this line
@@ -103,13 +100,14 @@ so that the string temporarily is in order because the swap is not complete.
 void wait_till_done(char *string, int n) {
 	int i;
 	while(1) {
-	    sched_yield();
+	   sched_yield();
 	    workperformed=0;
 	    for(i=0;i<n;i++) 
 	        if (string[i] > string[i+1]) {
 	            workperformed=1;
 	    	}
-	    if(workperformed==0) break;
+	    if(workperformed==0)
+			break;
 	}
 }
 
@@ -141,7 +139,6 @@ int smp2_main(int argc, char **argv) {
 	
 	pthread_t sleeperid;
 	pthread_create(&sleeperid,NULL,sleeper_func,(void*)5);
-
 	wait_till_done(string,n);
 	please_quit = 1;
 	printf("Joining threads...\n");
