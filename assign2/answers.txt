@@ -47,3 +47,11 @@ This is so that our threads cancel one at a time until the C is at the front of 
 Only one thread_info variable is collected so currently all of the threads would change the shared thread variable. This would cause 2 issues:
 -the swapcount would be initialized multiple times(thread 10 could initialize a swapcount that has already been incremented)
 -the threads would all work on the same section of the string as the string variable would be the same for all strings.
+
+
+
+
+
+
+
+					Part2:

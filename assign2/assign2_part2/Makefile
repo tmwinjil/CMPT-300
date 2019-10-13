@@ -1,6 +1,6 @@
 CC = gcc
 CCOPTS = -Wall -c -g -ggdb
-LINKOPTS = -Wall -g -ggdb -lpthread
+LINKOPTS = -Wall -g -ggdb -pthread
 
 all: calc
 

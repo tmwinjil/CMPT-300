@@ -76,6 +76,7 @@ void *adder(void *arg)
 	bufferlen = strlen(buffer);
 
 	for (i = 0; i < bufferlen; i++) {
+		
 	    // do we have value1 already?  If not, is this a "naked" number?
 	    // if we do, is the next character after it a '+'?
 	    // if so, is the next one a "naked" number?
@@ -129,8 +130,6 @@ void *degrouper(void *arg)
     int bufferlen;
     int i;
 
-    return NULL; /* remove this line */
-
     while (1) {
 
 	if (timeToFinish()) {
@@ -141,13 +140,23 @@ void *degrouper(void *arg)
 	bufferlen = strlen(buffer);
 
 	for (i = 0; i < bufferlen; i++) {
+		if(buffer[i] == '(') {
+			int j = 1;
+			while(isdigit(buffer[i + j]))
+				j++;
+			if(buffer[i + j] == ')') {
+				strcpy(&buffer[i + j], &buffer[i + j + 1]);
+				strcpy(&buffer[i],&buffer[i + 1]);
+			}
+		}
 	    // check for '(' followed by a naked number followed by ')'
 	    // remove ')' by shifting the tail end of the expression
 	    // remove '(' by shifting the beginning of the expression
 	}
-
+	sched_yield();
 	// something missing?
     }
+	return NULL;
 }
 
 
@@ -244,7 +253,7 @@ void *reader(void *arg)
 int smp3_main(int argc, char **argv)
 {
     void *arg = 0;		/* dummy value */
-
+	void* result;
     /* let's create our threads */
     if (pthread_create(&multiplierThread, NULL, multiplier, arg)
 	|| pthread_create(&adderThread, NULL, adder, arg)
@@ -258,9 +267,8 @@ int smp3_main(int argc, char **argv)
     pthread_detach(multiplierThread);
     pthread_detach(adderThread);
     pthread_detach(degrouperThread);
-    pthread_detach(sentinelThread);
     pthread_detach(readerThread);
-
+	pthread_join(sentinelThread,&result);
     /* everything is finished, print out the number of operations performed */
     fprintf(stdout, "Performed a total of %d operations\n", num_ops);
     return EXIT_SUCCESS;
