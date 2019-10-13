@@ -62,7 +62,7 @@ void *adder(void *arg)
     int startOffset, remainderOffset;
     int i;
 
-    return NULL; /* remove this line */
+   // return NULL; /* remove this line */
 
     while (1) {
 	startOffset = remainderOffset = -1;
@@ -76,7 +76,30 @@ void *adder(void *arg)
 	bufferlen = strlen(buffer);
 
 	for (i = 0; i < bufferlen; i++) {
-		
+		if (buffer[i] == '+') {
+			if(isdigit(buffer[i - 1]) && isdigit(buffer[i + 1])) {
+				startOffset = i - 1;
+				remainderOffset = i + 1;
+				int mult = 10;
+				value1 = buffer[startOffset--] - '0';
+				value2 = buffer[remainderOffset++] - '0';
+
+				while(isdigit(buffer[startOffset])) {//Extract value1
+					value1 += mult * (buffer[startOffset--] - '0');
+					mult *= 10;
+				}
+				while(isdigit(buffer[remainderOffset])) //Extract value2
+					value2 = (10 * value2) + (buffer[remainderOffset++] - '0');
+				
+				value1 += value2;
+
+				while(value1 >= 1) { //Copy number from rightmost digit(result will always be shorter than experession)
+					buffer[--remainderOffset] = '0' + (value1 % 10);
+					value1 /= 10;
+				}
+				strcpy(&buffer[startOffset+1],&buffer[remainderOffset]); //shift result to appear where expression started
+			}
+		}
 	    // do we have value1 already?  If not, is this a "naked" number?
 	    // if we do, is the next character after it a '+'?
 	    // if so, is the next one a "naked" number?
@@ -84,9 +107,10 @@ void *adder(void *arg)
 	    // once we have value1, value2 and start and end offsets of the
 	    // expression in buffer, replace it with v1+v2
 	}
-
+	sched_yield();
 	// something missing?
     }
+	return NULL;
 }
 
 /* Looks for a multiplication symbol "*" surrounded by two numbers, e.g.
