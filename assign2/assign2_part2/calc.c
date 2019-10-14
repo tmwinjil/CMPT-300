@@ -102,6 +102,8 @@ void *adder(void *arg)
 				}
 				strcpy(&buffer[startOffset+1],&buffer[remainderOffset]);
 				num_ops++;
+				change_made = 1;
+				//change_made[2] = '1';
 				if(pthread_mutex_unlock(&lock))
 					printErrorAndExit("Adder failed to unlock mutex");
 			}
@@ -168,6 +170,8 @@ void *multiplier(void *arg)
 				}
 				strcpy(&buffer[startOffset+1],&buffer[remainderOffset]); //shift result to appear where expression started
 				num_ops++;
+				change_made = 0;
+				//change_made[1] = '1';
 				if(pthread_mutex_unlock(&lock))
 					printErrorAndExit("Multiplier failed to unlock mutex");
 			}
@@ -211,6 +215,8 @@ void *degrouper(void *arg)
 				j++;
 			if(buffer[i + j] == ')') {
 				num_ops++;
+				change_made = 1;
+				//change_made[0] = '1';
 				strcpy(&buffer[i + j], &buffer[i + j + 1]);
 				strcpy(&buffer[i], &buffer[i + 1]);
 			}
@@ -236,17 +242,21 @@ void *sentinel(void *arg)
 {
     char numberBuffer[20];
     int bufferlen;
-    int i;
-
+    int i,no_change;
+	no_change = 0;
     while (1) {
 
 	if (timeToFinish()) {
 	    return NULL;
 	}
-
+	if(no_change > 2) {
+		printf("No progress can be made\n");
+		exit(EXIT_FAILURE);
+	}
 	/* storing this prevents having to recalculate it in the loop */
 	bufferlen = strlen(buffer);
-
+	change_made = 0;
+	//change_made[0]/*degrouper*/ = change_made[1]/*multiplier*/ = change_made[2]/*adder*/ = '0';
 	for (i = 0; i < bufferlen; i++) {
 	    if (buffer[i] == ';') {
 		if (i == 0) {
@@ -260,6 +270,7 @@ void *sentinel(void *arg)
 		    fprintf(stdout, "%s\n", numberBuffer);
 		    /* shift the remainder of the string to the left */
 		    strcpy(buffer, &buffer[i + 1]);
+			change_made = 1;
 			if(pthread_mutex_unlock(&lock))
 				printErrorAndExit("Sentinel failed to unlock mutex");
 		    break;
@@ -275,6 +286,16 @@ void *sentinel(void *arg)
 	    }
 	}
 	sched_yield();
+	if(pthread_mutex_lock(&lock))
+		printErrorAndExit("SENTINEL FAILED TO LOCK MUTEX");
+	bufferlen = strlen(buffer);
+	if((!change_made) && bufferlen != 0) {
+		no_change++;
+	} else {
+		no_change = 0;
+	}
+	if(pthread_mutex_unlock(&lock))
+		printErrorAndExit("SENTINEL FAILED TO UNLOCK MUTEX");
 	// something missing?
     }
 }
@@ -314,6 +335,7 @@ void *reader(void *arg)
 	/* we can add another expression now */
 	strcat(buffer, tBuffer);
 	strcat(buffer, ";");
+	change_made = 1;
 	if(pthread_mutex_unlock(&lock))
 		printErrorAndExit("Reader failed to unlock mutex");
 	/* Stop when user enters '.' */
