@@ -249,7 +249,7 @@ void *sentinel(void *arg)
 	if (timeToFinish()) {
 	    return NULL;
 	}
-	if(no_change > 2) {
+	if(no_change > 2) {//2 because if no changes are made the first cycle, it could be because a thread needs to wait for a modification from a blocked thread. This change must definitely be made in the second cylce however.
 		printf("No progress can be made\n");
 		exit(EXIT_FAILURE);
 	}
