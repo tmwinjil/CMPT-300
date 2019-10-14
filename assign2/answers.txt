@@ -55,3 +55,34 @@ Only one thread_info variable is collected so currently all of the threads would
 
 
 					Part2:
+
+1)
+(context: my multiplier looks for a '*' then reads the naked numbers value1*value2 around it from the digits closest to the '*')
+A synchronization error we could encounter are race conditions and data corruption. an example of a race conditon is given below.
+Two threads could interfere with eachother: the degrouper and multiplier. For example, they could both be working on a string "(32)*54". When the degrouper removes the ')' bracket, the multiplier reads the 2 and 5 around the '*' and begins collecting the values. However, The degrouper will then delete the '(' by shifting the entire string one place to the left. If '2' was originally in s[3] it will now be in s[2]. This will cause the multiplier to read 2 a second time. As a result, the multiplier will read 32 as 322, and 54 as 5. we will now have 322 * 5 being used as the result instead of 32 * 54.
+
+2)
+No, the program should not generate an incorrect output. The correct output should be produced regardless of the number of expressions. This is because the expressions are independent from one another. Assuming sentinel does not attempt to, for example, deque the result of a  simplified expression surrounded by other expressions still being processed*, the result should be correct.
+
+*if the queue at some point becomes "(unsimplified expression) ; (simplified expression) ; (unsimplified expression)" , the result will be correct for so long as the sentinel does not attempt to dequeue the simplified expression. 
+
+3)
+Buffer needs protection as if 2 threads read or write from the buffer at the same time, they may interfere with one another.
+
+4)
+If there is a busy-wait or a sched_yield() within the critical section, this will lead to starvation. The locking thread will prevent all other threads from using buffer. the busy-wait or sched_yield() will be waiting for a change in another thread's state, but no thread will be able to change state as they are all prevented from using the buffer. The result is an infinite wait.
+
+5)
+*
+
+6)
+A mutex is required, however, we could use the same mutex previously used. Any operation where multiple threads can read and write to a memory location requires synchronization. This is because the increment operation involves the reading of the num_ops variable. For example, if thread 1 and thread 2 are trying to simultaneously increment a = 1, they will both store temp = 1, and 1 to it and store a = temp = 2. even though 2 increment operations have been done, a has only incrememnted by 1.
+
+7)
+This is to prevent the locking of resources when the thread is cancelled or blocked.
+
+8)
+It is inefficient because the thread will spend processor time essentially doing nothing.
+
+9)
+spin-waiting can be "more" efficient when there are very short wait times (e.g only a few hundred clock cycles) as it does not require the CPU to block and unblock the thread. 

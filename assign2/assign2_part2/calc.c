@@ -8,9 +8,10 @@ pthread_t multiplierThread;
 pthread_t readerThread;
 pthread_t sentinelThread;
 
+pthread_mutex_t lock;
 char buffer[BUF_SIZE];
 int num_ops;
-
+int change_made;
 
 /* Utiltity functions provided for your convenience */
 
@@ -75,9 +76,11 @@ void *adder(void *arg)
 	/* storing this prevents having to recalculate it in the loop */
 	bufferlen = strlen(buffer);
 
-	for (i = 0; i < bufferlen; i++) {
+	for (i = 0; i < bufferlen && buffer[i] != '\0'; i++) {
 		if (buffer[i] == '+') {
 			if(isdigit(buffer[i - 1]) && isdigit(buffer[i + 1])) {
+				if(pthread_mutex_lock(&lock))
+					printErrorAndExit("Adder failed to lock mutex");
 				startOffset = i - 1;
 				remainderOffset = i + 1;
 				int mult = 10;
@@ -97,7 +100,10 @@ void *adder(void *arg)
 					buffer[--remainderOffset] = '0' + (value1 % 10);
 					value1 /= 10;
 				}
-				strcpy(&buffer[startOffset+1],&buffer[remainderOffset]); //shift result to appear where expression started
+				strcpy(&buffer[startOffset+1],&buffer[remainderOffset]);
+				num_ops++;
+				if(pthread_mutex_unlock(&lock))
+					printErrorAndExit("Adder failed to unlock mutex");
 			}
 		}
 	    // do we have value1 already?  If not, is this a "naked" number?
@@ -110,7 +116,6 @@ void *adder(void *arg)
 	sched_yield();
 	// something missing?
     }
-	return NULL;
 }
 
 /* Looks for a multiplication symbol "*" surrounded by two numbers, e.g.
@@ -140,6 +145,8 @@ void *multiplier(void *arg)
 	for (i = 0; i < bufferlen; i++) {
 		if (buffer[i] == '*') {
 			if(isdigit(buffer[i - 1]) && isdigit(buffer[i + 1])) {
+				if(pthread_mutex_lock(&lock))
+					printErrorAndExit("Multiplier failed to lock mutex");
 				startOffset = i - 1;
 				remainderOffset = i + 1;
 				int mult = 10;
@@ -160,6 +167,9 @@ void *multiplier(void *arg)
 					value1 /= 10;
 				}
 				strcpy(&buffer[startOffset+1],&buffer[remainderOffset]); //shift result to appear where expression started
+				num_ops++;
+				if(pthread_mutex_unlock(&lock))
+					printErrorAndExit("Multiplier failed to unlock mutex");
 			}
 		}
 	    // do we have value1 already?  If not, is this a "naked" number?
@@ -172,7 +182,6 @@ void *multiplier(void *arg)
 	sched_yield();
 	// something missing?
     }
-	return NULL;
 }
 
 
@@ -195,13 +204,18 @@ void *degrouper(void *arg)
 
 	for (i = 0; i < bufferlen; i++) {
 		if(buffer[i] == '(') {
+			if(pthread_mutex_lock(&lock))
+				printErrorAndExit("Degrouper failed to lock mutex");
 			int j = 1;
 			while(isdigit(buffer[i + j]))
 				j++;
 			if(buffer[i + j] == ')') {
+				num_ops++;
 				strcpy(&buffer[i + j], &buffer[i + j + 1]);
-				strcpy(&buffer[i],&buffer[i + 1]);
+				strcpy(&buffer[i], &buffer[i + 1]);
 			}
+			if(pthread_mutex_unlock(&lock))
+				printErrorAndExit("Degrouper failed to unlock Mutex");
 		}
 	    // check for '(' followed by a naked number followed by ')'
 	    // remove ')' by shifting the tail end of the expression
@@ -210,7 +224,6 @@ void *degrouper(void *arg)
 	sched_yield();
 	// something missing?
     }
-	return NULL;
 }
 
 
@@ -224,8 +237,6 @@ void *sentinel(void *arg)
     char numberBuffer[20];
     int bufferlen;
     int i;
-
-    return NULL; /* remove this line */
 
     while (1) {
 
@@ -242,20 +253,28 @@ void *sentinel(void *arg)
 		    printErrorAndExit("Sentinel found empty expression!");
 		} else {
 		    /* null terminate the string */
+			if(pthread_mutex_lock(&lock))
+				printErrorAndExit("Sentinel failed to lock mutex");
 		    numberBuffer[i] = '\0';
 		    /* print out the number we've found */
 		    fprintf(stdout, "%s\n", numberBuffer);
 		    /* shift the remainder of the string to the left */
 		    strcpy(buffer, &buffer[i + 1]);
+			if(pthread_mutex_unlock(&lock))
+				printErrorAndExit("Sentinel failed to unlock mutex");
 		    break;
 		}
 	    } else if (!isNumeric(buffer[i])) {
 		break;
 	    } else {
+			if(pthread_mutex_lock(&lock))
+				printErrorAndExit("Sentinel failed to lock mutex");
 		numberBuffer[i] = buffer[i];
+			if(pthread_mutex_unlock(&lock))
+				printErrorAndExit("Sentinel failed to unlock mutex");
 	    }
 	}
-
+	sched_yield();
 	// something missing?
     }
 }
@@ -288,17 +307,20 @@ void *reader(void *arg)
 	free = sizeof(buffer) - currentlen - 2;
 
 	while (free < newlen) {
-		// spinwaiting
+		sched_yield();// spinwaiting
 	}
-
+	if(pthread_mutex_lock(&lock))
+		printErrorAndExit("Reader failed to lock mutex");
 	/* we can add another expression now */
 	strcat(buffer, tBuffer);
 	strcat(buffer, ";");
-
+	if(pthread_mutex_unlock(&lock))
+		printErrorAndExit("Reader failed to unlock mutex");
 	/* Stop when user enters '.' */
 	if (tBuffer[0] == '.') {
 	    return NULL;
 	}
+	sched_yield();
     }
 }
 
@@ -307,8 +329,11 @@ void *reader(void *arg)
 int smp3_main(int argc, char **argv)
 {
     void *arg = 0;		/* dummy value */
-	void* result;
+	num_ops = 0;
     /* let's create our threads */
+	if(pthread_mutex_init(&lock,NULL)) {
+		printErrorAndExit("Failed to initialize mutex");
+	}
     if (pthread_create(&multiplierThread, NULL, multiplier, arg)
 	|| pthread_create(&adderThread, NULL, adder, arg)
 	|| pthread_create(&degrouperThread, NULL, degrouper, arg)
@@ -322,8 +347,9 @@ int smp3_main(int argc, char **argv)
     pthread_detach(adderThread);
     pthread_detach(degrouperThread);
     pthread_detach(readerThread);
-	pthread_join(sentinelThread,&result);
+	pthread_join(sentinelThread,NULL);
     /* everything is finished, print out the number of operations performed */
     fprintf(stdout, "Performed a total of %d operations\n", num_ops);
+	pthread_mutex_destroy(&lock);
     return EXIT_SUCCESS;
 }
