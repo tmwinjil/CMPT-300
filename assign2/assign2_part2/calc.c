@@ -11,7 +11,6 @@ pthread_t sentinelThread;
 pthread_mutex_t lock;
 char buffer[BUF_SIZE];
 int num_ops;
-int change_made;
 
 /* Utiltity functions provided for your convenience */
 
@@ -78,9 +77,9 @@ void *adder(void *arg)
 
 	for (i = 0; i < bufferlen && buffer[i] != '\0'; i++) {
 		if (buffer[i] == '+') {
-			if(isdigit(buffer[i - 1]) && isdigit(buffer[i + 1])) {
-				if(pthread_mutex_lock(&lock))
+			if(pthread_mutex_lock(&lock))
 					printErrorAndExit("Adder failed to lock mutex");
+			if(isdigit(buffer[i - 1]) && isdigit(buffer[i + 1])) {
 				startOffset = i - 1;
 				remainderOffset = i + 1;
 				int mult = 10;
@@ -101,12 +100,9 @@ void *adder(void *arg)
 					value1 /= 10;
 				}
 				strcpy(&buffer[startOffset+1],&buffer[remainderOffset]);
-				num_ops++;
-				change_made = 1;
-				//change_made[2] = '1';
-				if(pthread_mutex_unlock(&lock))
-					printErrorAndExit("Adder failed to unlock mutex");
 			}
+			if(pthread_mutex_unlock(&lock))
+					printErrorAndExit("Adder failed to unlock mutex");
 		}
 	    // do we have value1 already?  If not, is this a "naked" number?
 	    // if we do, is the next character after it a '+'?
@@ -146,9 +142,9 @@ void *multiplier(void *arg)
 
 	for (i = 0; i < bufferlen; i++) {
 		if (buffer[i] == '*') {
-			if(isdigit(buffer[i - 1]) && isdigit(buffer[i + 1])) {
-				if(pthread_mutex_lock(&lock))
+			if(pthread_mutex_lock(&lock))
 					printErrorAndExit("Multiplier failed to lock mutex");
+			if(isdigit(buffer[i - 1]) && isdigit(buffer[i + 1])) {
 				startOffset = i - 1;
 				remainderOffset = i + 1;
 				int mult = 10;
@@ -169,12 +165,9 @@ void *multiplier(void *arg)
 					value1 /= 10;
 				}
 				strcpy(&buffer[startOffset+1],&buffer[remainderOffset]); //shift result to appear where expression started
-				num_ops++;
-				change_made = 0;
-				//change_made[1] = '1';
-				if(pthread_mutex_unlock(&lock))
-					printErrorAndExit("Multiplier failed to unlock mutex");
 			}
+			if(pthread_mutex_unlock(&lock))
+					printErrorAndExit("Multiplier failed to unlock mutex");
 		}
 	    // do we have value1 already?  If not, is this a "naked" number?
 	    // if we do, is the next character after it a '+'?
@@ -207,22 +200,20 @@ void *degrouper(void *arg)
 	bufferlen = strlen(buffer);
 
 	for (i = 0; i < bufferlen; i++) {
+		if(pthread_mutex_lock(&lock))
+			printErrorAndExit("Degrouper failed to lock mutex");
 		if(buffer[i] == '(') {
-			if(pthread_mutex_lock(&lock))
-				printErrorAndExit("Degrouper failed to lock mutex");
 			int j = 1;
-			while(isdigit(buffer[i + j]))
+			while(isdigit(buffer[i + j])) {
 				j++;
+			}
 			if(buffer[i + j] == ')') {
-				num_ops++;
-				change_made = 1;
-				//change_made[0] = '1';
 				strcpy(&buffer[i + j], &buffer[i + j + 1]);
 				strcpy(&buffer[i], &buffer[i + 1]);
 			}
-			if(pthread_mutex_unlock(&lock))
-				printErrorAndExit("Degrouper failed to unlock Mutex");
 		}
+		if(pthread_mutex_unlock(&lock))
+				printErrorAndExit("Degrouper failed to unlock Mutex");
 	    // check for '(' followed by a naked number followed by ')'
 	    // remove ')' by shifting the tail end of the expression
 	    // remove '(' by shifting the beginning of the expression
@@ -242,60 +233,38 @@ void *sentinel(void *arg)
 {
     char numberBuffer[20];
     int bufferlen;
-    int i,no_change;
-	no_change = 0;
+    int i;
     while (1) {
 
 	if (timeToFinish()) {
 	    return NULL;
 	}
-	if(no_change > 2) {//2 because if no changes are made the first cycle, it could be because a thread needs to wait for a modification from a blocked thread. This change must definitely be made in the second cylce however.
-		printf("No progress can be made\n");
-		exit(EXIT_FAILURE);
-	}
 	/* storing this prevents having to recalculate it in the loop */
 	bufferlen = strlen(buffer);
-	change_made = 0;
-	//change_made[0]/*degrouper*/ = change_made[1]/*multiplier*/ = change_made[2]/*adder*/ = '0';
+	if(pthread_mutex_lock(&lock))
+				printErrorAndExit("Sentinel failed to lock mutex");
 	for (i = 0; i < bufferlen; i++) {
 	    if (buffer[i] == ';') {
 		if (i == 0) {
 		    printErrorAndExit("Sentinel found empty expression!");
 		} else {
 		    /* null terminate the string */
-			if(pthread_mutex_lock(&lock))
-				printErrorAndExit("Sentinel failed to lock mutex");
 		    numberBuffer[i] = '\0';
 		    /* print out the number we've found */
 		    fprintf(stdout, "%s\n", numberBuffer);
 		    /* shift the remainder of the string to the left */
 		    strcpy(buffer, &buffer[i + 1]);
-			change_made = 1;
-			if(pthread_mutex_unlock(&lock))
-				printErrorAndExit("Sentinel failed to unlock mutex");
 		    break;
 		}
 	    } else if (!isNumeric(buffer[i])) {
 		break;
 	    } else {
-			if(pthread_mutex_lock(&lock))
-				printErrorAndExit("Sentinel failed to lock mutex");
-		numberBuffer[i] = buffer[i];
-			if(pthread_mutex_unlock(&lock))
-				printErrorAndExit("Sentinel failed to unlock mutex");
+			numberBuffer[i] = buffer[i];
 	    }
 	}
-	sched_yield();
-	if(pthread_mutex_lock(&lock))
-		printErrorAndExit("SENTINEL FAILED TO LOCK MUTEX");
-	bufferlen = strlen(buffer);
-	if((!change_made) && bufferlen != 0) {
-		no_change++;
-	} else {
-		no_change = 0;
-	}
 	if(pthread_mutex_unlock(&lock))
-		printErrorAndExit("SENTINEL FAILED TO UNLOCK MUTEX");
+				printErrorAndExit("Sentinel failed to unlock mutex");
+	sched_yield();
 	// something missing?
     }
 }
@@ -335,7 +304,6 @@ void *reader(void *arg)
 	/* we can add another expression now */
 	strcat(buffer, tBuffer);
 	strcat(buffer, ";");
-	change_made = 1;
 	if(pthread_mutex_unlock(&lock))
 		printErrorAndExit("Reader failed to unlock mutex");
 	/* Stop when user enters '.' */
