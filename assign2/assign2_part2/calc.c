@@ -100,6 +100,7 @@ void *adder(void *arg)
 					value1 /= 10;
 				}
 				strcpy(&buffer[startOffset+1],&buffer[remainderOffset]);
+				num_ops++;
 			}
 			if(pthread_mutex_unlock(&lock))
 					printErrorAndExit("Adder failed to unlock mutex");
@@ -165,6 +166,7 @@ void *multiplier(void *arg)
 					value1 /= 10;
 				}
 				strcpy(&buffer[startOffset+1],&buffer[remainderOffset]); //shift result to appear where expression started
+				num_ops++;
 			}
 			if(pthread_mutex_unlock(&lock))
 					printErrorAndExit("Multiplier failed to unlock mutex");
@@ -210,6 +212,7 @@ void *degrouper(void *arg)
 			if(buffer[i + j] == ')') {
 				strcpy(&buffer[i + j], &buffer[i + j + 1]);
 				strcpy(&buffer[i], &buffer[i + 1]);
+				num_ops++;
 			}
 		}
 		if(pthread_mutex_unlock(&lock))
