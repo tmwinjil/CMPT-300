@@ -8,7 +8,8 @@ pthread_t multiplierThread;
 pthread_t readerThread;
 pthread_t sentinelThread;
 
-pthread_mutex_t lock;
+//pthread_mutex_t lock;
+sem_t lock;
 char buffer[BUF_SIZE];
 int num_ops;
 char func_finished[3];
@@ -78,7 +79,7 @@ void *adder(void *arg)
 
 	for (i = 0; i < bufferlen && buffer[i] != '\0'; i++) {
 		if (buffer[i] == '+') {
-			if(pthread_mutex_lock(&lock))
+			if(sem_wait(&lock))
 					printErrorAndExit("Adder failed to lock mutex");
 			if(isdigit(buffer[i - 1]) && isdigit(buffer[i + 1])) {
 				startOffset = i - 1;
@@ -104,7 +105,7 @@ void *adder(void *arg)
 				num_ops++;
 				change_made = 1;
 			}
-			if(pthread_mutex_unlock(&lock))
+			if(sem_post(&lock))
 					printErrorAndExit("Adder failed to unlock mutex");
 		}
 	}
@@ -140,7 +141,7 @@ void *multiplier(void *arg)
 
 	for (i = 0; i < bufferlen; i++) {
 		if (buffer[i] == '*') {
-			if(pthread_mutex_lock(&lock))
+			if(sem_wait(&lock))
 					printErrorAndExit("Multiplier failed to lock mutex");
 			if(isdigit(buffer[i - 1]) && isdigit(buffer[i + 1])) {
 				startOffset = i - 1;
@@ -166,7 +167,7 @@ void *multiplier(void *arg)
 				num_ops++;
 				change_made = 1;
 			}
-			if(pthread_mutex_unlock(&lock))
+			if(sem_post(&lock))
 					printErrorAndExit("Multiplier failed to unlock mutex");
 		}
 	    // do we have value1 already?  If not, is this a "naked" number?
@@ -201,7 +202,7 @@ void *degrouper(void *arg)
 	bufferlen = strlen(buffer);
 
 	for (i = 0; i < bufferlen; i++) {
-		if(pthread_mutex_lock(&lock))
+		if(sem_wait(&lock))
 			printErrorAndExit("Degrouper failed to lock mutex");
 		if(buffer[i] == '(') {
 			int j = 1;
@@ -215,7 +216,7 @@ void *degrouper(void *arg)
 				change_made = 1;
 			}
 		}
-		if(pthread_mutex_unlock(&lock))
+		if(sem_post(&lock))
 				printErrorAndExit("Degrouper failed to unlock Mutex");
 	    // check for '(' followed by a naked number followed by ')'
 	    // remove ')' by shifting the tail end of the expression
@@ -251,7 +252,7 @@ void *sentinel(void *arg)
 
 	/* storing this prevents having to recalculate it in the loop */
 	bufferlen = strlen(buffer);
-	if(pthread_mutex_lock(&lock))
+	if(sem_wait(&lock))
 				printErrorAndExit("Sentinel failed to lock mutex");
 	for (i = 0; i < bufferlen; i++) {
 	    if (buffer[i] == ';') {
@@ -272,10 +273,10 @@ void *sentinel(void *arg)
 			numberBuffer[i] = buffer[i];
 	    }
 	}
-	if(pthread_mutex_unlock(&lock))
+	if(sem_post(&lock))
 				printErrorAndExit("Sentinel failed to unlock mutex");
 	sched_yield();
-	if(pthread_mutex_lock(&lock))
+	if(sem_wait(&lock))
 		printErrorAndExit("Sentinel failed to lock mutex");
 	if(!strcmp(func_finished, "111") && bufferlen != 0) {
 		if(!change_made)
@@ -285,7 +286,7 @@ void *sentinel(void *arg)
 		}
 		func_finished[0] = func_finished[1] = func_finished[2] = '0';
 	}
-	if(pthread_mutex_unlock(&lock))
+	if(sem_post(&lock))
 		printErrorAndExit("Sentinel failed to unlock mutex");
 	// something missing?
     }
@@ -321,12 +322,12 @@ void *reader(void *arg)
 	while (free < newlen) {
 		sched_yield();// spinwaiting
 	}
-	if(pthread_mutex_lock(&lock))
+	if(sem_wait(&lock))
 		printErrorAndExit("Reader failed to lock mutex");
 	/* we can add another expression now */
 	strcat(buffer, tBuffer);
 	strcat(buffer, ";");
-	if(pthread_mutex_unlock(&lock))
+	if(sem_post(&lock))
 		printErrorAndExit("Reader failed to unlock mutex");
 	/* Stop when user enters '.' */
 	if (tBuffer[0] == '.') {
@@ -344,7 +345,7 @@ int smp3_main(int argc, char **argv)
 	num_ops = 0;
 	func_finished[0] = func_finished[1] = func_finished[2] = '0';
     /* let's create our threads */
-	if(pthread_mutex_init(&lock,NULL)) {
+	if(sem_init(&lock,0,1)) {
 		printErrorAndExit("Failed to initialize mutex");
 	}
     if (pthread_create(&multiplierThread, NULL, multiplier, arg)
