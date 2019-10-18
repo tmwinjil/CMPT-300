@@ -11,7 +11,8 @@ pthread_t sentinelThread;
 pthread_mutex_t lock;
 char buffer[BUF_SIZE];
 int num_ops;
-
+char func_finished[3];
+int change_made;
 /* Utiltity functions provided for your convenience */
 
 /* int2string converts an integer into a string and writes it in the
@@ -101,17 +102,13 @@ void *adder(void *arg)
 				}
 				strcpy(&buffer[startOffset+1],&buffer[remainderOffset]);
 				num_ops++;
+				change_made = 1;
 			}
 			if(pthread_mutex_unlock(&lock))
 					printErrorAndExit("Adder failed to unlock mutex");
 		}
-	    // do we have value1 already?  If not, is this a "naked" number?
-	    // if we do, is the next character after it a '+'?
-	    // if so, is the next one a "naked" number?
-
-	    // once we have value1, value2 and start and end offsets of the
-	    // expression in buffer, replace it with v1+v2
 	}
+	func_finished[0] = '1';
 	sched_yield();
 	// something missing?
     }
@@ -167,6 +164,7 @@ void *multiplier(void *arg)
 				}
 				strcpy(&buffer[startOffset+1],&buffer[remainderOffset]); //shift result to appear where expression started
 				num_ops++;
+				change_made = 1;
 			}
 			if(pthread_mutex_unlock(&lock))
 					printErrorAndExit("Multiplier failed to unlock mutex");
@@ -178,6 +176,7 @@ void *multiplier(void *arg)
 	    // once we have value1, value2 and start and end offsets of the
 	    // expression in buffer, replace it with v1+v2
 	}
+	func_finished[1] = '1';
 	sched_yield();
 	// something missing?
     }
@@ -213,6 +212,7 @@ void *degrouper(void *arg)
 				strcpy(&buffer[i + j], &buffer[i + j + 1]);
 				strcpy(&buffer[i], &buffer[i + 1]);
 				num_ops++;
+				change_made = 1;
 			}
 		}
 		if(pthread_mutex_unlock(&lock))
@@ -221,6 +221,7 @@ void *degrouper(void *arg)
 	    // remove ')' by shifting the tail end of the expression
 	    // remove '(' by shifting the beginning of the expression
 	}
+	func_finished[2] = '1';
 	sched_yield();
 	// something missing?
     }
@@ -237,11 +238,17 @@ void *sentinel(void *arg)
     char numberBuffer[20];
     int bufferlen;
     int i;
+	int no_change_counter = 0; //If there is no change seen twice 
     while (1) {
 
 	if (timeToFinish()) {
 	    return NULL;
 	}
+	if (no_change_counter > 2) {
+		printf("No progress can be made\n");
+		exit(EXIT_FAILURE);
+	}
+
 	/* storing this prevents having to recalculate it in the loop */
 	bufferlen = strlen(buffer);
 	if(pthread_mutex_lock(&lock))
@@ -268,6 +275,18 @@ void *sentinel(void *arg)
 	if(pthread_mutex_unlock(&lock))
 				printErrorAndExit("Sentinel failed to unlock mutex");
 	sched_yield();
+	if(pthread_mutex_lock(&lock))
+		printErrorAndExit("Sentinel failed to lock mutex");
+	if(!strcmp(func_finished, "111") && bufferlen != 0) {
+		if(!change_made)
+			no_change_counter++;
+		else {
+			change_made = 0;
+		}
+		func_finished[0] = func_finished[1] = func_finished[2] = '0';
+	}
+	if(pthread_mutex_unlock(&lock))
+		printErrorAndExit("Sentinel failed to unlock mutex");
 	// something missing?
     }
 }
@@ -323,6 +342,7 @@ int smp3_main(int argc, char **argv)
 {
     void *arg = 0;		/* dummy value */
 	num_ops = 0;
+	func_finished[0] = func_finished[1] = func_finished[2] = '0';
     /* let's create our threads */
 	if(pthread_mutex_init(&lock,NULL)) {
 		printErrorAndExit("Failed to initialize mutex");
