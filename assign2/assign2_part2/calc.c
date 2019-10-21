@@ -184,9 +184,11 @@ void *multiplier(void *arg)
 }
 
 
-/* Looks for a number immediately surrounded by parentheses [e.g.
-   "(56)"] in the buffer and, if found, removes the parentheses leaving
-   only the surrounded number. */
+/**
+ * @brief	Looks for a number immediately surrounded by parentheses [e.g."(56)"]
+ *  		in the buffer and, if found, removes the parentheses (first ')' then '(') leaving only the
+ *  		surrounded number. 
+ **/
 void *degrouper(void *arg)
 {
     int bufferlen;
@@ -276,6 +278,7 @@ void *sentinel(void *arg)
 	if(sem_post(&lock))
 				printErrorAndExit("Sentinel failed to unlock mutex");
 	sched_yield();
+
 	if(sem_wait(&lock))
 		printErrorAndExit("Sentinel failed to lock mutex");
 	if(!strcmp(func_finished, "111") && bufferlen != 0) {
@@ -288,7 +291,6 @@ void *sentinel(void *arg)
 	}
 	if(sem_post(&lock))
 		printErrorAndExit("Sentinel failed to unlock mutex");
-	// something missing?
     }
 }
 
