@@ -4,17 +4,17 @@
 #include "list.h"
 
 struct thread_info {
-	sched_queue_t* queue;
+	list_t* queue;
 	list_elem_t* queueData;
+	sem_t runWorker;//Semaphore to activate or deactivate worker thread.
 	/*...Fill this in...*/
 };
 
 struct sched_queue {
-	int maxSize;
-	int size;
-	
-	//list_elem_t* pos;//used to show the current thread being executed
-	list_t* list
+	list_elem_t* currentWorker;
+	list_elem_t* nextWorker;
+	//Insert all semaphores for queue here
+	list_t* list;
 	/*...Fill this in...*/
 };
 
