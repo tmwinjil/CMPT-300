@@ -12,37 +12,31 @@ sem_t emptySem; //acts exactly opposite to controlSem. makes sure queue is not e
 /* Initialize a thread_info_t */
 static void init_thread_info(thread_info_t *info, sched_queue_t *queue)
 {
-	printf("**INITIALIZING THREAD\n");
 	info->queue = queue->list;
 	info->queueData = NULL;
-	/*...Code goes here...*/
 }
 
 /* Release the resources associated with a thread_info_t */
 static void destroy_thread_info(thread_info_t *info)
 {
-	printf("**DESTROYING THREAD\n");
 	free(info->queueData);
-	/*...Code goes here...*/
 }
 
 /* Block until the thread can enter the scheduler queue. */
 static void enter_sched_queue(thread_info_t *info)
 {
-	printf("**ENTERING QUEUE\n");
 	sem_wait(&controlSem);
 	info->queueData = (list_elem_t*)malloc(sizeof(list_elem_t));
 	list_elem_init(info->queueData, (void*)info);
 	list_insert_tail(info->queue, info->queueData);
-	sem_post(&emptySem);
+	if(list_size(info->queue) == 1)//list was previously empty and now is not
+		sem_post(&emptySem);
 	sem_init(&info->runWorker,0,0);
-	sem_wait(&info->runWorker); //sleep thread in queue until it has been scheduled to begin.
 }
 
 /* Remove the thread from the scheduler queue. */
 static void leave_sched_queue(thread_info_t *info)
 {
-	printf("**LEAVING QUEUE\n");
 	list_remove_elem(info->queue, info->queueData);
 	sem_post(&controlSem);
 }
@@ -50,15 +44,15 @@ static void leave_sched_queue(thread_info_t *info)
 /* While on the scheduler queue, block until thread is scheduled. */
 static void wait_for_cpu(thread_info_t *info)
 {
-	printf("**WAITING TO BE SCHEDULED\n");
+	/*int a;
+	sem_getvalue(&info->runWorker,&a);
+	printf("**a = %d\n",a);*/
 	sem_wait(&info->runWorker);
-	printf("**SCHEDULED SUCCESSFULLY\n");
 }
 /* Voluntarily relinquish the CPU when this thread's timeslice is
  * over (cooperative multithreading). */
 static void release_cpu(thread_info_t *info)
 {
-	printf("**RELEASING CPU\n");
 	sem_post(&cpuSem);
 	sched_yield();
 }
@@ -67,9 +61,7 @@ static void release_cpu(thread_info_t *info)
 /* Initialize a sched_queue_t */
 static void init_sched_queue(sched_queue_t *queue, int queue_size)
 {
-	printf("**INITIALIZING QUEUE\n");
 	if (queue_size <= 0) {
-		printf("Queue must have a size > 0\n");
 		exit(-1); //exit entire program if queue has a size of zero
 	}
 	queue->currentWorker = NULL;
@@ -77,7 +69,7 @@ static void init_sched_queue(sched_queue_t *queue, int queue_size)
 	queue->list = (list_t*) malloc(sizeof(list_t));
 	list_init(queue->list);
 	sem_init(&controlSem, 0, queue_size);
-	sem_init(&cpuSem,0,1);
+	sem_init(&cpuSem,0,0);
 	sem_init(&emptySem,0,0);
 	/*...Code goes here...*/
 }
@@ -85,7 +77,6 @@ static void init_sched_queue(sched_queue_t *queue, int queue_size)
 /* Release the resources associated with a sched_queue_t */
 static void destroy_sched_queue(sched_queue_t *queue)
 {
-	printf("**DESTROYING QUEUE\n");
 	list_elem_t * temp;
 	while ((temp = list_get_head(queue->list)) != NULL) {
 		list_remove_elem(queue->list, temp);
@@ -97,50 +88,59 @@ static void destroy_sched_queue(sched_queue_t *queue)
 /* Allow a worker thread to execute. */
 static void wake_up_worker(thread_info_t *info)
 {
-	printf("**WAKING UP WORKER\n");
 	sem_post(&info->runWorker);
 }
 
 /* Block until the current worker thread relinquishes the CPU. */
 static void wait_for_worker(sched_queue_t *queue)
 {
-	printf("**WAITING FOR CPU\n");
-	sem_wait(&cpuSem);//Maybe
-	printf("**CPU FREE\n");
+	sem_wait(&cpuSem);
 }
 
 /* Select the next worker thread to execute.
  * Returns NULL if the scheduler queue is empty. */
-static thread_info_t * next_worker(sched_queue_t *queue)
-{
-	printf("**SELECTING NEXT WORKER\n");
-	if(list_size(queue->list) == 0)
-		return NULL;
 
-	if(queue->nextWorker == NULL) {
+static thread_info_t * next_worker_rr(sched_queue_t *queue)
+{
+	//printf("**SELECTING NEXT\n");
+	if(list_size(queue->list) == 0) {
+		return NULL;
+	}
+	if(queue->currentWorker == NULL) {//queue was just empty and now has an item in it
 		queue->currentWorker = list_get_head(queue->list);
-	} else {
+	} else if (queue->nextWorker == NULL) {//the last currentWorker was the tail of the queue
+		if (queue->currentWorker == list_get_tail(queue->list)) {//the previous working thread is still in the queue and is the tail
+			queue->currentWorker = list_get_head(queue->list);
+		} else {
+			queue->currentWorker = list_get_tail(queue->list); //collect the new tail
+		}
+	} else {//next worker is a member of the list
 		queue->currentWorker = queue->nextWorker;
 	}
-
 	queue->nextWorker = queue->currentWorker->next;
-	printf("**NEXT WORKER SELECTED\n");
 	return (thread_info_t*) queue->currentWorker->datum;
+}
+
+static thread_info_t * next_worker_fifo(sched_queue_t *queue) {
+	if(list_size(queue->list) == 0) {
+		return NULL;
+	}
+	else {
+		return (thread_info_t*) (list_get_head(queue->list))->datum;
+	}
 }
 
 /* Block until at least one worker thread is in the scheduler queue. */
 static void wait_for_queue(sched_queue_t *queue)
 {
-	printf("**WAITING FOR QUEUE TO FILL UP\n");
 	sem_wait(&emptySem);
-	printf("**QUEUE IS NOW FILLED\n");
 }
 /*...More functions go here...*/
 
 /* You need to statically initialize these structures: */
 sched_impl_t sched_fifo = {
-	{ init_thread_info, destroy_thread_info, enter_sched_queue, leave_sched_queue, wait_for_cpu, release_cpu   /*, ...etc... */ }, 
-	{ init_sched_queue, destroy_sched_queue, wake_up_worker, wait_for_worker, next_worker, wait_for_queue /*, ...etc... */ } },
+	{ init_thread_info, destroy_thread_info, enter_sched_queue, leave_sched_queue, wait_for_cpu, release_cpu}, 
+	{ init_sched_queue, destroy_sched_queue, wake_up_worker, wait_for_worker, next_worker_fifo, wait_for_queue} },
 sched_rr = {
-	{ init_thread_info, destroy_thread_info, enter_sched_queue, leave_sched_queue, wait_for_cpu, release_cpu  /*, ...etc... */ }, 
-	{ init_sched_queue, destroy_sched_queue, wake_up_worker, wait_for_worker, next_worker, wait_for_queue /*, ...etc... */ } };
+	{ init_thread_info, destroy_thread_info, enter_sched_queue, leave_sched_queue, wait_for_cpu, release_cpu}, 
+	{ init_sched_queue, destroy_sched_queue, wake_up_worker, wait_for_worker, next_worker_rr, wait_for_queue} };
