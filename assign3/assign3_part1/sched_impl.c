@@ -1,13 +1,12 @@
 #include "scheduler.h"
 #include "sched_impl.h"
 #include <stdlib.h>
-#include <stdio.h>
 #include <sched.h>
 #include <assert.h>
 sem_t controlSem; //semaphore to control how many threads are in the queue at a time
 sem_t cpuSem; //To allow 1 thread at a time to use the CPU (acts as mutex);
-sem_t emptySem; //acts exactly opposite to controlSem. makes sure queue is not empty. 
-
+sem_t emptySem; //acts exactly opposite to controlSem. makes sure queue is not empty.
+#define ASSERTCHECK
 /*** WORKER THREAD OPS ***/
 
 /* Initialize a thread_info_t */
@@ -65,7 +64,6 @@ static void init_sched_queue(sched_queue_t *queue, int queue_size)
 		exit(-1); //exit entire program if queue has a size of zero
 	}
 	queue->currentWorker = NULL;
-	queue->nextWorker = NULL;
 	queue->list = (list_t*) malloc(sizeof(list_t));
 	list_init(queue->list);
 	sem_init(&controlSem, 0, queue_size);
@@ -87,12 +85,24 @@ static void destroy_sched_queue(sched_queue_t *queue)
 /* Allow a worker thread to execute. */
 static void wake_up_worker(thread_info_t *info)
 {
+#ifdef ASSERTCHECK
+	int a;
+	sem_getvalue(&info->runWorker, &a);
+	assert(a == 0);
+	printf("runWorker == %d\n",a);
+#endif
 	sem_post(&info->runWorker);
 }
 
 /* Block until the current worker thread relinquishes the CPU. */
 static void wait_for_worker(sched_queue_t *queue)
 {
+#ifdef ASSERTCHECK
+	int a;
+	sem_getvalue(&cpuSem, &a);
+	assert(a == 0);
+	printf("cpuSem == %d\n",a);
+#endif
 	sem_wait(&cpuSem);
 }
 
@@ -103,21 +113,15 @@ static thread_info_t * next_worker_rr(sched_queue_t *queue)
 	if(list_size(queue->list) == 0) {
 		return NULL;
 	}
-
-	if(queue->currentWorker == NULL) {//queue was just empty and now has an item in it
-		queue->currentWorker = list_get_head(queue->list);
-	} else if (queue->nextWorker == NULL) {//the last currentWorker was the tail of the queue
-		if (queue->currentWorker == list_get_tail(queue->list)) {//the previous working thread is still in the queue and is the tail
-			queue->currentWorker = list_get_head(queue->list);
-		} else {
-			queue->currentWorker = list_get_tail(queue->list); //collect the new tail
+	int size = 0;
+	if((queue->currentWorker != NULL) && ((size = list_size(queue->list)) > 1)) {//if item still exists in list
+		list_remove_elem(queue->list, queue->currentWorker);
+		if (size > list_size(queue->list)) {//if currentWorker was indeed found and and removed by the last operation 
+			list_insert_tail(queue->list, queue->currentWorker);
 		}
-	} else {//next worker is a member of the list
-		queue->currentWorker = queue->nextWorker;
 	}
-
-	queue->nextWorker = queue->currentWorker->next;
-	return (thread_info_t*) queue->currentWorker->datum;
+	queue->currentWorker = list_get_head(queue->list);
+	return (thread_info_t*)queue->currentWorker->datum;
 }
 
 /* Select the next worker thread to execute in FIFO scheduling
