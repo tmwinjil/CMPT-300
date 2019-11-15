@@ -12,7 +12,6 @@ struct thread_info {
 
 struct sched_queue {
 	list_elem_t* currentWorker;
-	list_elem_t* nextWorker;
 	//Insert all semaphores for queue here
 	list_t* list;
 	/*...Fill this in...*/
