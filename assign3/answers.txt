@@ -1,24 +1,39 @@
 Part 1:
 1)
+Pros:
+-Produces member function like behaviour in a language with no inherent classes like C.
+Cons:
+-Reuires more overhead as the function pointers must be stored in the struct
 
 2)
+I used 4 semaphores for synchronization:
+-queueSem: Initialized to the queuesize to only allow that many threads into the queue. Could be a member of queue_info but i wanted to easily access it from every function rather than having to call queue all the time.
+-cpuSem: Initialized to 1 and signals whwn the queue can schedule the next task.
+-runWorker: is a part of every thread and block once the thread is in the queue and only unblocks when the worker thread is woken up by the scheduler. Blocks on every call to wait_for_cpu
+-emptySem: works as a signal between the queue and the scheduler to signal when the queue has gone from an empty state to having an item
 
 3)
+There is no bound on how many threads can be created (technically the bound is INT_MAX or +2147483647). The main issue is that we can input a negative number of threads and the dummy scheduling will try to allocate a negative amount of memory which is not possible. My implementation will not run if the queue_size <= 0 or if the thread_count is <=0;
 
 4)
+No because it will run until all threads are closed. the number of threads is not held by the function or checked buy our scheduling algorithm and thus we do not have acces to it and cannot have errors due to our scheduling algorithm.
 
 5)
+They are declared extern because they are variables to be used outside of the file in which they are declared in hence we need to notify the compiler of this fact.
 
 6)
+It prints the error number of failed function call. We do not use errno as we do not collect the error from a system call but rather a user level function call hence we need to collect the error on a user level.
 
 7)
+in terms of correctness, wait_for_queue does not need to do anything in order for the program to produce correct output. Not having it (or having it return right away) would affect performance though because the dispatcher thread would essentially be in a busy-wait loop until there is an element in the queue. This would hinder performance as a thread would be taking up processor resources even when it is essentially doing nothing. 
 
 8)
+The main program parses the user input to find which policy was selected by the user. That sturcture is then pointed to by the sched pointer (which has already been defined within sched_impl.c) and will use the functions pointed to by the policies shed structure. The position og the function pointers in the definition of the scheduling pointers allows the same name (e.g next_worker) to be used by the sched structure, even though there is no function of the name next_worker in my implementation. This is because next_worker in sched_impl_t is the name of a function pointer and it can point to any function with the same input paraeters and return type as it was declared to have.
 
-9)
+10)**
 
-10)
 
+It is difficultt to show the benefits of round robin as every worker is indistinguishable from the other and thus we do not see a change in the number of completed processes by the end of a fixed time vs fifo.
 
 Part 2:
 
