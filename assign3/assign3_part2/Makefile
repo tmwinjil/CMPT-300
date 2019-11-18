@@ -1,6 +1,6 @@
 CC = gcc
 CCOPTS = -c -g -Wall
-LINKOPTS = -g -lpthread -lrt -Wall
+LINKOPTS = -g -pthread -Wall
 
 EXEC=scheduler
 OBJECTS=scheduler.o worker.o list.o smp5_tests.o testrunner.o
@@ -8,7 +8,7 @@ OBJECTS=scheduler.o worker.o list.o smp5_tests.o testrunner.o
 all: $(EXEC)
 
 $(EXEC): $(OBJECTS)
-	$(CC) $(LINKOPTS) -o $@ $^
+	$(CC) $(LINKOPTS) -o $@ $^  -lrt
 
 %.o:%.c
 	$(CC) $(CCOPTS) -o $@ $^

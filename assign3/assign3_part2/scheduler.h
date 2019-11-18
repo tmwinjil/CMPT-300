@@ -10,7 +10,7 @@
 /* typedefs */
 typedef struct thread_info {
 	pthread_t		thrid;
-        int                     quanta;
+    int         	quanta;
   	list_elem*		le;
 	/*added for evalution bookkeeping*/
 	struct timespec suspend_time;

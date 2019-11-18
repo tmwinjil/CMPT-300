@@ -41,6 +41,8 @@ static void wait_for_queue();
  */
 void update_run_time(thread_info_t *info) {
         /* TODO: implement this function */
+	clock_gettime(CLOCK_REALTIME, &info->suspend_time);
+	info->run_time += time_difference(&info->suspend_time, &info->resume_time);
 }
 
 /* 
@@ -49,6 +51,8 @@ void update_run_time(thread_info_t *info) {
  */
 void update_wait_time(thread_info_t *info) {
         /* TODO: implement this function */
+	clock_gettime(CLOCK_REALTIME, &info->resume_time);
+	info->wait_time += time_difference(&info->resume_time, &info->suspend_time);
 }
 
 
@@ -63,6 +67,7 @@ static void init_sched_queue(int queue_size)
 	pthread_mutex_init(&sched_queue.lock, NULL);
 
 	/* TODO: initialize the timer */
+	timer_create (CLOCK_REALTIME, NULL, &timer);
 }
 
 /*
@@ -75,7 +80,7 @@ static void resume_worker(thread_info_t *info)
 	/*
 	 * TODO: signal the worker thread that it can resume 
 	 */
-
+	pthread_kill(info->thrid, SIGUSR2);
 	/* update the wait time for the thread */
 	update_wait_time(info);
 
@@ -86,7 +91,7 @@ void cancel_worker(thread_info_t *info)
 {
 
 	/* TODO: send a signal to the thread, telling it to kill itself*/
-
+	pthread_kill(info->thrid, SIGTERM);
 	/* Update global wait and run time info */
 	wait_times += info->wait_time;
 	run_times += info->run_time;
@@ -96,7 +101,7 @@ void cancel_worker(thread_info_t *info)
 	leave_scheduler_queue(info);
 
 	if (completed >= thread_count) {
-  	        sched_yield(); /* Let other threads terminate. */
+  	    sched_yield(); /* Let other threads terminate. */
 		printf("The total wait time is %f seconds.\n", (float)wait_times / 1000000);
 		printf("The total run time is %f seconds.\n", (float)run_times / 1000000);
 		printf("The average wait time is %f seconds.\n", (float)wait_times / 1000000 / thread_count);
@@ -110,7 +115,7 @@ void cancel_worker(thread_info_t *info)
 static void suspend_worker(thread_info_t *info)
 {
 
-        int whatgoeshere = 0;
+    //int timeout = 0;
 	printf("Scheduler: suspending %lu.\n", info->thrid);
 
 	/*update the run time for the thread*/
@@ -118,13 +123,18 @@ static void suspend_worker(thread_info_t *info)
 
 	/* TODO: Update quanta remaining. */
 
+	//struct itimerspec temp;
+	//timer_gettime(&timer, &temp);
+	//timeout = temp.it_value.tv_sec;
+	info->quanta--;
+
 	/* TODO: decide whether to cancel or suspend thread */
-	if(whatgoeshere) {
+	if(info->quanta > 0) {
 	  /*
 	   * Thread still running: suspend.
 	   * TODO: Signal the worker thread that it should suspend.
 	   */
-
+	  pthread_kill(info->thrid, SIGUSR1);
 	  /* Update Schedule queue */
 	  list_remove(&sched_queue,info->le);
 	  list_insert_tail(&sched_queue,info->le);
@@ -182,13 +192,19 @@ void timer_handler()
  * TODO: Implement this function.
  */
 void setup_sig_handlers() {
-
+	struct sigaction actionAlrm, actionTerm, actionUsr1;
+	sigemptyset(&actionAlrm.sa_mask);
+	actionTerm.sa_mask = actionUsr1.sa_mask = actionAlrm.sa_mask;
+	actionAlrm.sa_flags = actionTerm.sa_flags = actionUsr1.sa_flags = 0;
 	/* Setup timer handler for SIGALRM signal in scheduler */
-
+	actionAlrm.sa_handler = timer_handler;
+	sigaction(SIGALRM, &actionAlrm ,NULL);
 	/* Setup cancel handler for SIGTERM signal in workers */
-
+	actionTerm.sa_handler = cancel_thread;
+	sigaction(SIGTERM, &actionTerm ,NULL);
 	/* Setup suspend handler for SIGUSR1 signal in workers */
-
+	actionUsr1.sa_handler = suspend_thread;
+	sigaction(SIGUSR1, &actionUsr1 ,NULL);
 }
 
 /*******************************************************************************
@@ -253,7 +269,9 @@ static void create_workers(int thread_count, int *quanta)
 	for (i = 0; i < thread_count; i++) {
 		thread_info_t *info = (thread_info_t *) malloc(sizeof(thread_info_t));
 		info->quanta = quanta[i];
-
+		info->run_time = info->wait_time = 0;
+		clock_gettime(CLOCK_REALTIME, &info->resume_time);
+		 info->suspend_time = info->resume_time;
 		if ((err = pthread_create(&info->thrid, NULL, start_worker, (void *)info)) != 0) {
 			exit_error(err);
 		}
@@ -273,7 +291,10 @@ static void *scheduler_run(void *unused)
 	wait_for_queue();
 
 	/* TODO: start the timer */
-
+	struct itimerspec interval;
+	interval.it_interval.tv_sec = interval.it_value.tv_sec = QUANTUM;
+	interval.it_interval.tv_nsec = interval.it_value.tv_nsec = 0;
+	timer_settime(timer,0,&interval,NULL);
 	/*keep the scheduler thread alive*/
 	while( !quit )
 		sched_yield();

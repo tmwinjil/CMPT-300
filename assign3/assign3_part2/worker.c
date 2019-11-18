@@ -30,6 +30,11 @@ void suspend_thread()
 	printf("Thread %u: suspending.\n", (unsigned int)pthread_self());
 
 	/*add your code here to wait for a resume signal from the scheduler*/
+	sigset_t resume;
+	int signal;
+	sigemptyset(&resume);
+	sigaddset(&resume, SIGUSR1);
+	sigwait(&resume,&signal);
 	
 	printf("Thread %u: resuming.\n",(unsigned int) pthread_self());
 }
@@ -85,11 +90,17 @@ void *start_worker(void *arg)
 	thread_info_t *info = (thread_info_t *) arg;
 	float calc = 0.8;
 	int j = 0;
-
+	sigset_t blocked, unblocked;
+	sigemptyset(&blocked);
+	sigemptyset(&unblocked);
 	/* TODO: Block SIGALRM and SIGUSR2. */
-	 
+	sigaddset(&blocked, SIGALRM);
+	sigaddset(&blocked, SIGUSR2);
+	pthread_sigmask(SIG_BLOCK,&blocked,NULL);
 	/* TODO: Unblock SIGUSR1 and SIGTERM. */
-
+	sigaddset(&unblocked, SIGUSR1);
+	sigaddset(&blocked, SIGTERM);
+	pthread_sigmask(SIG_UNBLOCK,&unblocked,NULL);
 
 	/* compete with other threads to enter queue. */
 	if (enter_scheduler_queue(info)) {

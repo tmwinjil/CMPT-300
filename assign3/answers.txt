@@ -36,4 +36,23 @@ The main program parses the user input to find which policy was selected by the 
 It is difficultt to show the benefits of round robin as every worker is indistinguishable from the other and thus we do not see a change in the number of completed processes by the end of a fixed time vs fifo.
 
 Part 2:
+1)
+The SIGUSR2 and SIGALRM signal as they are signals intended for the scheduler and not the indvidual threads. Worker threads should not be interrupted by or attempt to handle these signals. We unblock SIGUSR1 and SIGTERM because once we reeive a signal it gets added to the blocked list and we need to unblock it to receive another signal of that type.
+
+2)
+sigwait blocks a calling thread until a signal from the signal set has been received. it is a waiting function. sigaction on the other hand changes the way a thread reacts when it receives a certain signal. It does not block the thread but instead determines what actions a thread will take upon the receipt of a signal.so for example a call of sigwait will pause on the line until the signal is received then run the very next line. Sigaction will cause the thread to enter whatever function is specified whenever that signal is received without actually needing the signal to have been received at all.
+
+3)
+an absolute timer is the alternative. while a relative timer counts a certain amount of time to pass form its call(e.g 3seconds), an absolute timer will wait for a specific time(e.g 13:59:25). If the absolute time specified has passed upon the call, the timer will immediately expire (unlike the relative timer that always waits the amount of time from its call).
+
+4)
+The worker thread terminates when it is signalled to by another thread(e.g our scheduler). THis is because the behaviour of the thread upon receiving the kill signal is already defined and will be carried out asynchrounously.
+
+5)
+The scheduler finishes when it is signalled to by the timer_handler. The reason it does not terminate when the queue is empty is because if for example the queue is of size 1 and a worker leaves but there is still another worker waiting to enter the queue, it will enter the queue by the time the timer expires. If we were to stop the scheduler the moment the queue is empty we would miss this worker or any others attempting to enter the queue.
+
+6)*
+A worker is in the queue until it is terminated. It is removed from the head of the queue upon suspension and moved to the tail of the queue. It is only removed completely when it is terminated.
+
+7)
 
