@@ -33,7 +33,7 @@ void suspend_thread()
 	sigset_t resume;
 	int signal;
 	sigemptyset(&resume);
-	sigaddset(&resume, SIGUSR1);
+	sigaddset(&resume, SIGUSR2);
 	sigwait(&resume,&signal);
 	
 	printf("Thread %u: resuming.\n",(unsigned int) pthread_self());

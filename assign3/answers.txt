@@ -2,8 +2,16 @@ Part 1:
 1)
 Pros:
 -Produces member function like behaviour in a language with no inherent classes like C.
+-More extendability as structure function ptr does not have to change when more functions are added (e.g when I added rr and fifo next_worker functions to sched_impl i did not have to change scheduler.c at all)
+-less work when modifying function behaviour
+-can be passed as arguments e.g if we were trying to decide a swapping algorithm we could make a generic swapper function and pass the specific swapping function into it.
+
 Cons:
--Reuires more overhead as the function pointers must be stored in the struct
+-Requires more overhead as the function pointers must be stored in the struct
+-Harder to debug as it is more difficult to tell which instance of the function we are calling.
+-Code becomes harder to read for the same reason as above.
+
+I would not use function pointers in cases where I have a very limited aount of memory as they have a much higher overhead.
 
 2)
 I used 4 semaphores for synchronization:
@@ -13,13 +21,14 @@ I used 4 semaphores for synchronization:
 -emptySem: works as a signal between the queue and the scheduler to signal when the queue has gone from an empty state to having an item
 
 3)
-There is no bound on how many threads can be created (technically the bound is INT_MAX or +2147483647). The main issue is that we can input a negative number of threads and the dummy scheduling will try to allocate a negative amount of memory which is not possible. My implementation will not run if the queue_size <= 0 or if the thread_count is <=0;
+The main issue is that we can input a negative number of threads and the dummy scheduling will try to allocate a negative amount of memory which is not possible, resulting in an invalid memory reference. My implementation will not run if the queue_size <= 0 or if the thread_count is <=0.
+There is also no bound on how many threads can be created (technically the bound is INT_MAX or +2147483647). 
 
 4)
 No because it will run until all threads are closed. the number of threads is not held by the function or checked buy our scheduling algorithm and thus we do not have acces to it and cannot have errors due to our scheduling algorithm.
 
 5)
-They are declared extern because they are variables to be used outside of the file in which they are declared in hence we need to notify the compiler of this fact.
+They are declared extern because they are variables to be used outside of the file in which they are declared in hence we need to notify the compiler of this fact. if they were not declared extern, we would not be able to access them from other files. If they were nit declared anywhere with extern, each C file would create a new instance of the variab;e if they were simply declared as variables and changes in 1 file would not affect those that happen in another.
 
 6)
 It prints the error number of failed function call. We do not use errno as we do not collect the error from a system call but rather a user level function call hence we need to collect the error on a user level.
@@ -30,9 +39,11 @@ in terms of correctness, wait_for_queue does not need to do anything in order fo
 8)
 The main program parses the user input to find which policy was selected by the user. That sturcture is then pointed to by the sched pointer (which has already been defined within sched_impl.c) and will use the functions pointed to by the policies shed structure. The position og the function pointers in the definition of the scheduling pointers allows the same name (e.g next_worker) to be used by the sched structure, even though there is no function of the name next_worker in my implementation. This is because next_worker in sched_impl_t is the name of a function pointer and it can point to any function with the same input paraeters and return type as it was declared to have.
 
-10)**
-----
+10)
+I would modify the code to create workers of different lengths then run them for a certain number fo cycles(specifically with some workers running for much longer than others). After this set amount of time(possibly less than half the length of the total workers) the  I could stop the code and check how many workers have completed. If the longer workers were first in the queue we would see that there are less completed workers in the time frame with fifo scheduling rather than rr as the fifo workers had to wait for the longer worker  to complete.
+  
 It is difficultt to show the benefits of round robin as every worker is indistinguishable from the other and thus we do not see a change in the number of completed processes by the end of a fixed time vs fifo.
+
 
 Part 2:
 1)
@@ -50,7 +61,7 @@ The worker thread terminates when it is signalled to by another thread(e.g our s
 5)
 The scheduler finishes when it is signalled to by the timer_handler. The reason it does not terminate when the queue is empty is because if for example the queue is of size 1 and a worker leaves but there is still another worker waiting to enter the queue, it will enter the queue by the time the timer expires. If we were to stop the scheduler the moment the queue is empty we would miss this worker or any others attempting to enter the queue.
 
-6)*
+6)
 A worker is in the queue until it is terminated. It is removed from the head of the queue upon suspension and moved to the tail of the queue. It is only removed completely when it is terminated.
 
 7)
@@ -63,4 +74,4 @@ completed tracks how many worker threads have been canceled (in our case how man
 To implement the FIFO schedyle i would modify suspend_worker. I would comment out the lines where the list element is removed and placed at the tail. Though this would be inefficient, it would lead the worker to keep being selected to run until its quanta is finished and it leaves the queue.
 
 10)
-we could add an additional signal that would lead the thread to suspend. The action taken when this signal is received could store how long into the quanta the thread was so that it can continue once it is returned to the head of the queue. This woul dbe useful in interrupt handling as the interrupt arrives asynchrounously and needs to be handled quickly hence should not wait to enter the sched_queue or wait to be the head of the sched_queue. 
+we could add an additional signal that would lead the thread to emergency_suspend. The action taken when this signal is received could store how long into the quanta the thread was so that it can continue once it is returned to the head of the queue(possibly using the old_value portion of timer_settime). It would then run till completion and reset the timer to continue running where it left off and continue the regular global timer. This woul dbe useful in interrupt handling as the interrupt arrives asynchrounously and needs to be handled quickly hence should not wait to enter the sched_queue or wait to be the head of the sched_queue. 
