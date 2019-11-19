@@ -115,7 +115,6 @@ void cancel_worker(thread_info_t *info)
 static void suspend_worker(thread_info_t *info)
 {
 
-    //int timeout = 0;
 	printf("Scheduler: suspending %lu.\n", info->thrid);
 
 	/*update the run time for the thread*/
@@ -123,9 +122,6 @@ static void suspend_worker(thread_info_t *info)
 
 	/* TODO: Update quanta remaining. */
 
-	//struct itimerspec temp;
-	//timer_gettime(&timer, &temp);
-	//timeout = temp.it_value.tv_sec;
 	info->quanta--;
 
 	/* TODO: decide whether to cancel or suspend thread */
@@ -192,18 +188,23 @@ void timer_handler()
  * TODO: Implement this function.
  */
 void setup_sig_handlers() {
-	struct sigaction actionAlrm, actionTerm, actionUsr1;
-	sigemptyset(&actionAlrm.sa_mask);
-	actionTerm.sa_mask = actionUsr1.sa_mask = actionAlrm.sa_mask;
-	actionAlrm.sa_flags = actionTerm.sa_flags = actionUsr1.sa_flags = 0;
 	/* Setup timer handler for SIGALRM signal in scheduler */
+	struct sigaction actionAlrm;
 	actionAlrm.sa_handler = timer_handler;
+	sigemptyset(&actionAlrm.sa_mask);
+	actionAlrm.sa_flags = 0;
 	sigaction(SIGALRM, &actionAlrm ,NULL);
 	/* Setup cancel handler for SIGTERM signal in workers */
+	struct sigaction actionTerm;
 	actionTerm.sa_handler = cancel_thread;
+	sigemptyset(&actionTerm.sa_mask);
+	actionTerm.sa_flags = 0;
 	sigaction(SIGTERM, &actionTerm ,NULL);
 	/* Setup suspend handler for SIGUSR1 signal in workers */
+	struct sigaction actionUsr1;
 	actionUsr1.sa_handler = suspend_thread;
+	sigemptyset(&actionUsr1.sa_mask);
+	actionUsr1.sa_flags = 0;
 	sigaction(SIGUSR1, &actionUsr1 ,NULL);
 }
 

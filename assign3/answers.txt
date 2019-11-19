@@ -31,8 +31,7 @@ in terms of correctness, wait_for_queue does not need to do anything in order fo
 The main program parses the user input to find which policy was selected by the user. That sturcture is then pointed to by the sched pointer (which has already been defined within sched_impl.c) and will use the functions pointed to by the policies shed structure. The position og the function pointers in the definition of the scheduling pointers allows the same name (e.g next_worker) to be used by the sched structure, even though there is no function of the name next_worker in my implementation. This is because next_worker in sched_impl_t is the name of a function pointer and it can point to any function with the same input paraeters and return type as it was declared to have.
 
 10)**
-
-
+----
 It is difficultt to show the benefits of round robin as every worker is indistinguishable from the other and thus we do not see a change in the number of completed processes by the end of a fixed time vs fifo.
 
 Part 2:
@@ -55,4 +54,13 @@ The scheduler finishes when it is signalled to by the timer_handler. The reason 
 A worker is in the queue until it is terminated. It is removed from the head of the queue upon suspension and moved to the tail of the queue. It is only removed completely when it is terminated.
 
 7)
+This is to prevent workers from entering the queue whne they ar not supposed to. For example, when scheduling we remove the head and re-insert it at the tail. We do not want a new worker to enter the queue while this is happening as the former head has not been "removed" from the queue per se, but is simply changing positions. We also want to prevent too many workers from entering the queue and a sempahore is a good way to do this.
 
+8)
+completed tracks how many worker threads have been canceled (in our case how many workers have reached the end of their quantas) We compare completed woth thread_count in next worker because we do not want to try  read the queue for the next worker if we have already completed execution of all the workers.
+
+9)
+To implement the FIFO schedyle i would modify suspend_worker. I would comment out the lines where the list element is removed and placed at the tail. Though this would be inefficient, it would lead the worker to keep being selected to run until its quanta is finished and it leaves the queue.
+
+10)
+we could add an additional signal that would lead the thread to suspend. The action taken when this signal is received could store how long into the quanta the thread was so that it can continue once it is returned to the head of the queue. This woul dbe useful in interrupt handling as the interrupt arrives asynchrounously and needs to be handled quickly hence should not wait to enter the sched_queue or wait to be the head of the sched_queue. 
