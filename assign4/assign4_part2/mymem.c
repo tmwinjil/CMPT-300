@@ -116,7 +116,7 @@ void initmem(strategies strategy, size_t sz)
 	head->size = sz; 
 	head->alloc = 0;
 	head->ptr = myMemory;
-	next = NULL;
+	next = head;
 	currentSize = 0;
 }
 
@@ -153,6 +153,21 @@ void *mymalloc(size_t requested)
 		case Worst:
 			return NULL;
 		case Next:
+		for (struct memoryList *ptr = next; ptr != NULL; ptr = ptr->next) {
+				if (ptr->alloc == 0 && ptr->size >= requested) {
+					size_t nextSize = ptr->size - requested;
+					ptr->alloc = 1;
+					ptr->size = requested;
+					currentSize += requested;
+					if (nextSize > 0)
+						insertAfter(ptr,nextSize);
+					next = ptr->next;
+					if (next == NULL) {
+						next = head;
+					}
+					return ptr->ptr;
+				}
+			}
 	        return NULL;
 	  }
 	return NULL;
