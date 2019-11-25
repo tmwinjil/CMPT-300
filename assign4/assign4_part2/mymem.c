@@ -26,11 +26,56 @@ strategies myStrategy = NotSet;    // Current strategy
 
 
 size_t mySize;
-size_t currentSize;
+int currentSize;
 void *myMemory = NULL;
 
 static struct memoryList *head;
 static struct memoryList *next;
+
+/***************MY FUNCTIONS************************/
+static void fixHoles(void)
+{
+	struct memoryList *temp;
+	temp = head;
+	while(temp != NULL) {
+		if (temp->alloc == 0 && temp->next != NULL) {
+			if (temp->next->alloc == 0) {
+				struct memoryList *deadNode;
+				deadNode = temp->next;
+				temp->size += deadNode->size;
+				temp->next = deadNode->next;
+				if (deadNode->next != NULL)
+					deadNode->next->last = temp;
+				free(deadNode);
+				continue;
+			}
+		}
+		temp = temp->next;
+	}
+}
+
+//Creates a block of free space after allocation.
+static void insertAfter(struct memoryList* ptr, size_t sz) {
+	struct memoryList* newNode;
+	newNode = malloc(sizeof(struct memoryList));
+	newNode->next = ptr->next;
+	newNode->last = ptr;
+	newNode->alloc = 0;
+	newNode->size = sz;
+	newNode->ptr = ptr->ptr + ptr->size;
+
+	if (ptr->next == NULL) {//ptr is last node in list
+		ptr->next = newNode;
+	} else {
+			ptr->next->last = newNode;
+			ptr->next = newNode;
+	}
+	fixHoles();
+}
+
+/*************************************************************/
+
+
 
 /* initmem must be called prior to mymalloc and myfree.
 
@@ -56,13 +101,14 @@ void initmem(strategies strategy, size_t sz)
 
 	/* TODO: release any other memory you were using for bookkeeping when doing a re-initialization! */
 	while(head != NULL) {
-		struct memoryList* deadNode = head;
+		struct memoryList* deadNode;
+		deadNode = head;
 		head = head->next;
 		free(deadNode);
 	}
 
 	myMemory = malloc(sz);
-	
+
 	/* TODO: Initialize memory management structure. */
 	head = malloc(sizeof(struct memoryList));
 	head->last = NULL;
@@ -72,37 +118,9 @@ void initmem(strategies strategy, size_t sz)
 	head->ptr = myMemory;
 	next = NULL;
 	currentSize = 0;
-
-}
-/*************************************************************/
-
-//Creates a block of free space after allocation.
-void insertAfter(struct memoryList* ptr, size_t sz) {
-	struct memoryList* newNode = malloc(sizeof(struct memoryList));
-		newNode->next = ptr->next;
-		newNode->last = ptr;
-		newNode->alloc = 0;
-		newNode->size = sz;
-		newNode->ptr = ptr->ptr + ptr->size;
-	if (sz == 0) {
-		free(newNode);
-		return;
-	}
-	if (ptr->next == NULL) {
-		ptr->next = newNode;
-	} else {
-		if (ptr->next->alloc == 0) {
-			ptr->next->size += sz;
-			ptr->next->ptr -= sz;
-			free(newNode);
-		} else {
-			ptr->next->last = newNode;
-			ptr->next = newNode;
-		}
-	}
+	print_memory();
 }
 
-/*************************************************************/
 /* Allocate a block of memory with the requested size.
  *  If the requested block is not available, mymalloc returns NULL.
  *  Otherwise, it returns a pointer to the newly allocated block.
@@ -111,9 +129,10 @@ void insertAfter(struct memoryList* ptr, size_t sz) {
 void *mymalloc(size_t requested)
 {
 	assert((int)myStrategy > 0);
-	struct memoryList *ptr, *temp;
+	struct memoryList *ptr;
 	if ((currentSize + requested > mySize) || requested < 1)
 		return NULL;
+
 	switch (myStrategy) {
 		case NotSet: 
 			return NULL;
@@ -124,11 +143,16 @@ void *mymalloc(size_t requested)
 					size_t nextSize = ptr->size - requested;
 					ptr->alloc = 1;
 					ptr->size = requested;
-					insertAfter(ptr,nextSize);
+					currentSize += requested;
+					if (nextSize > 0)
+						insertAfter(ptr,nextSize);
+					print_memory();
 					return ptr->ptr;
 				}
 				ptr = ptr->next;
 			}
+			print_memory();
+			return NULL;
 		case Best:
 	 		return NULL;
 		case Worst:
@@ -138,7 +162,6 @@ void *mymalloc(size_t requested)
 	  }
 	return NULL;
 }
-
 
 /* Frees a block of memory previously allocated by mymalloc. */
 void myfree(void* block)
@@ -150,30 +173,12 @@ void myfree(void* block)
 			temp->alloc = 0;
 			currentSize -= temp->size;
 			/*fix memory holes*/
-			while (temp->last->alloc == 0 || temp->next->alloc == 0) {
-				if (temp->last->alloc == 0) {
-					struct memoryList *deadNode;
-					temp->last->size += temp->size;
-					temp->next->last = temp->last;
-					temp->last->next = temp->next;
-					deadNode = temp;
-					temp = temp->last;
-					free(deadNode);
-				}
-				if (temp->next->alloc == 0) {
-					struct memoryList *deadNode;
-					deadNode = temp->next;
-					temp->next = deadNode->next;
-					temp->size += deadNode->size;
-					deadNode->next->last = temp;
-					free(deadNode);
-				}
-			}
+			fixHoles();
 			break;
-		} else
-			temp = temp->next;
+		}
+		temp = temp->next;
 	}
-	return;
+	print_memory();
 }
 
 /****** Memory status/property functions ******
@@ -186,10 +191,12 @@ void myfree(void* block)
 int mem_holes()
 {
 	int count = 0;
-	struct memoryList *ptr = head;
+	struct memoryList *ptr;
+	ptr = head;
 	while (ptr != NULL) {
 		if (ptr->alloc == 0)
 			count++;
+		ptr = ptr->next;
 	}
 	return count;
 }
@@ -203,40 +210,46 @@ int mem_allocated()
 /* Number of non-allocated bytes */
 int mem_free()
 {
-	return mySize - currentSize;
+	return (int)mySize - currentSize;
 }
 
 /* Number of bytes in the largest contiguous area of unallocated memory */
 int mem_largest_free()
 {
-	size_t max = 0;
-	struct memoryList *ptr = head;
+	int max = 0;
+	struct memoryList *ptr;
+	ptr = head;
 	while (ptr != NULL) {
-		if (ptr->size > max)
+		if (ptr->alloc == 0 && ptr->size > max)
 			max = ptr->size;
+		ptr = ptr->next;
 	}
-	return (int)max;
+	return max;
 }
 
 /* Number of free blocks smaller than "size" bytes. */
 int mem_small_free(int size)
 {
-	size_t min = mySize;
-	struct memoryList *ptr = head;
+	int min = mySize;
+	struct memoryList *ptr;
+	ptr = head;
 	while (ptr != NULL) {
-		if (ptr->size < min)
+		if (ptr->alloc == 0 && ptr->size < min)
 			min = ptr->size;
+		ptr = ptr->next;
 	}
-	return (int)min;
+	return min;
 }       
 //Always assumes ptr is valid
 char mem_is_alloc(void *ptr)
 {
-	struct memoryList *temp = head;
+	struct memoryList *temp;
+	temp = head;
 	while (temp != NULL) {
 		if (ptr >= temp->ptr && ptr < (temp->ptr + temp->size)) { //ptr lies within this block
 			return temp->alloc;
 		}
+		temp = temp->next;
 	}
 	printf("*****ERROR");
         return 0;
@@ -313,7 +326,26 @@ strategies strategyFromString(char * strategy)
 /* Use this function to print out the current contents of memory. */
 void print_memory()
 {
-
+	FILE* fp;
+	fp = fopen("tk_test.txt","a");
+	struct memoryList *temp,*prev;
+	temp = head;
+	prev = NULL;
+	int count = 0;
+	int size = 0;
+	fprintf(fp,"Printing memoryList:\n");
+	while (temp != NULL && count <= 100) {
+		if (prev == temp) {
+			fprintf(fp,"ERROR in LIST STRUCTURE\n");
+		}
+		fprintf(fp,"block %d: alloc: %d size %d \n", count, temp->alloc, temp->size);
+		size += temp->size;
+		prev = temp;
+		temp = temp->next;
+		count++;
+	}
+	fprintf(fp, "Total Size: %d bytes\n\n",size);
+	fclose(fp);
 	return;
 }
 
