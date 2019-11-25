@@ -230,15 +230,15 @@ int mem_largest_free()
 /* Number of free blocks smaller than "size" bytes. */
 int mem_small_free(int size)
 {
-	int min = mySize;
+	int count = 0;
 	struct memoryList *ptr;
 	ptr = head;
 	while (ptr != NULL) {
-		if (ptr->alloc == 0 && ptr->size < min)
-			min = ptr->size;
+		if (ptr->alloc == 0 && ptr->size <= size)
+			count++;
 		ptr = ptr->next;
 	}
-	return min;
+	return count;
 }       
 //Always assumes ptr is valid
 char mem_is_alloc(void *ptr)
