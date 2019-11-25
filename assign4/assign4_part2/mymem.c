@@ -100,7 +100,9 @@ void initmem(strategies strategy, size_t sz)
 	if (myMemory != NULL) free(myMemory); /* in case this is not the first time initmem2 is called */
 
 	/* TODO: release any other memory you were using for bookkeeping when doing a re-initialization! */
-	for (struct memoryList* deadNode = head; deadNode != NULL;) {
+	while (head != NULL) {
+		struct memoryList* deadNode;
+		deadNode = head;
 		head = head->next;
 		free(deadNode);
 	}
@@ -163,10 +165,10 @@ void myfree(void* block)
 		if (temp->ptr == block) {
 			temp->alloc = 0;
 			currentSize -= temp->size;
-			fixHoles();
 			break;
 		}
 	}
+	fixHoles();
 }
 
 /****** Memory status/property functions ******
