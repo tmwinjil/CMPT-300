@@ -100,9 +100,7 @@ void initmem(strategies strategy, size_t sz)
 	if (myMemory != NULL) free(myMemory); /* in case this is not the first time initmem2 is called */
 
 	/* TODO: release any other memory you were using for bookkeeping when doing a re-initialization! */
-	while(head != NULL) {
-		struct memoryList* deadNode;
-		deadNode = head;
+	for (struct memoryList* deadNode = head; deadNode != NULL;) {
 		head = head->next;
 		free(deadNode);
 	}
@@ -118,7 +116,6 @@ void initmem(strategies strategy, size_t sz)
 	head->ptr = myMemory;
 	next = NULL;
 	currentSize = 0;
-	print_memory();
 }
 
 /* Allocate a block of memory with the requested size.
@@ -129,7 +126,7 @@ void initmem(strategies strategy, size_t sz)
 void *mymalloc(size_t requested)
 {
 	assert((int)myStrategy > 0);
-	struct memoryList *ptr;
+
 	if ((currentSize + requested > mySize) || requested < 1)
 		return NULL;
 
@@ -137,8 +134,7 @@ void *mymalloc(size_t requested)
 		case NotSet: 
 			return NULL;
 		case First:
-			ptr = head;
-			while(ptr != NULL) {
+			for (struct memoryList *ptr = head; ptr != NULL; ptr = ptr->next) {
 				if (ptr->alloc == 0 && ptr->size >= requested) {
 					size_t nextSize = ptr->size - requested;
 					ptr->alloc = 1;
@@ -146,12 +142,9 @@ void *mymalloc(size_t requested)
 					currentSize += requested;
 					if (nextSize > 0)
 						insertAfter(ptr,nextSize);
-					print_memory();
 					return ptr->ptr;
 				}
-				ptr = ptr->next;
 			}
-			print_memory();
 			return NULL;
 		case Best:
 	 		return NULL;
@@ -166,19 +159,14 @@ void *mymalloc(size_t requested)
 /* Frees a block of memory previously allocated by mymalloc. */
 void myfree(void* block)
 {
-	struct memoryList *temp;
-	temp = head;
-	while (temp != NULL) {
+	for (struct memoryList *temp = head; temp!= NULL; temp = temp->next) {
 		if (temp->ptr == block) {
 			temp->alloc = 0;
 			currentSize -= temp->size;
-			/*fix memory holes*/
 			fixHoles();
 			break;
 		}
-		temp = temp->next;
 	}
-	print_memory();
 }
 
 /****** Memory status/property functions ******
@@ -191,12 +179,9 @@ void myfree(void* block)
 int mem_holes()
 {
 	int count = 0;
-	struct memoryList *ptr;
-	ptr = head;
-	while (ptr != NULL) {
+	for (struct memoryList *ptr = head; ptr != NULL; ptr = ptr->next) {
 		if (ptr->alloc == 0)
 			count++;
-		ptr = ptr->next;
 	}
 	return count;
 }
@@ -217,12 +202,9 @@ int mem_free()
 int mem_largest_free()
 {
 	int max = 0;
-	struct memoryList *ptr;
-	ptr = head;
-	while (ptr != NULL) {
+	for (struct memoryList *ptr = head; ptr != NULL; ptr = ptr->next) {
 		if (ptr->alloc == 0 && ptr->size > max)
 			max = ptr->size;
-		ptr = ptr->next;
 	}
 	return max;
 }
@@ -231,27 +213,20 @@ int mem_largest_free()
 int mem_small_free(int size)
 {
 	int count = 0;
-	struct memoryList *ptr;
-	ptr = head;
-	while (ptr != NULL) {
+	for (struct memoryList *ptr = head;ptr != NULL; ptr = ptr->next) {
 		if (ptr->alloc == 0 && ptr->size <= size)
 			count++;
-		ptr = ptr->next;
 	}
 	return count;
 }       
 //Always assumes ptr is valid
 char mem_is_alloc(void *ptr)
 {
-	struct memoryList *temp;
-	temp = head;
-	while (temp != NULL) {
+	for (struct memoryList *temp = head; temp != NULL; temp = temp->next) {
 		if (ptr >= temp->ptr && ptr < (temp->ptr + temp->size)) { //ptr lies within this block
 			return temp->alloc;
 		}
-		temp = temp->next;
 	}
-	printf("*****ERROR");
         return 0;
 }
 
@@ -326,6 +301,7 @@ strategies strategyFromString(char * strategy)
 /* Use this function to print out the current contents of memory. */
 void print_memory()
 {
+#ifdef DEBUG
 	FILE* fp;
 	fp = fopen("tk_test.txt","a");
 	struct memoryList *temp,*prev;
@@ -346,6 +322,7 @@ void print_memory()
 	}
 	fprintf(fp, "Total Size: %d bytes\n\n",size);
 	fclose(fp);
+#endif
 	return;
 }
 
