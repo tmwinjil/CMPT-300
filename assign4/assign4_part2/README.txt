@@ -60,7 +60,7 @@ one large block.
 
 We have also given you a few functions to help you monitor what happens when you
 call your functions.  Most important is the try_mymem() function.  If you run
-your code with "mem -try <args>", it will call this function, which you can use
+your code with "./mem-try <args>", it will call this function, which you can use
 to demonstrate the effects of your memory operations.  These functions have no
 effect on test code, so use them to your advantage.
 
@@ -68,15 +68,15 @@ Running your code:
 
 After running "make", run
 
-1) "mem" to see the available tests and strategies.
-2) "mem -test <test> <strategy>" to test your code with our tests.
-3) "mem -try <args>" to run your code with your own tests
+1) "./mem" to see the available tests and strategies.
+2) "./mem-test <test> <strategy>" to test your code with our tests.
+3) "./mem-try <args>" to run your code with your own tests
    (the try_mymem function).
 
 You can also use "make test" and "make stage1-test" for testing.  "make
 stage1-test" only runs the tests relevant to stage 1.
 
-As in previous MPs, running "mem -test -f0 ..." will allow tests to run even
+As in previous MPs, running "./mem-test -f0 ..." will allow tests to run even
 after previous tests have failed.  Similarly, using "all" for a test or strategy
 name runs all of the tests or strategies.  Note that if "all" is selected as the
 strategy, the 4 tests are shown as one.
@@ -89,7 +89,7 @@ view this file to see the relative performance of each strategy.
 Stage 1
 -------
 
-Implement all the above functions, for the first-fit strategy.  Use "mem -test
+Implement all the above functions, for the first-fit strategy.  Use "./mem -test
 all first" to test your implementation.
 
 
@@ -101,8 +101,8 @@ strategy is passed to initmem(), and stored in the global variable "myStrategy".
 Some of your functions will need to check this variable to implement the
 correct strategy.
 
-You can test your code with "mem -test all worst", etc., or test all 4 together
-with "mem -test all all".  The latter command does not test the strategies
+You can test your code with "./mem-test all worst", etc., or test all 4 together
+with "./mem-test all all".  The latter command does not test the strategies
 separately; your code passes the test only if all four strategies pass.
 
 

@@ -23,7 +23,7 @@ test: mem
 	mem -test -f0 all all
 
 stage1-test: mem
-	mem -test -f0 all first
+	./mem -test -f0 all first
 
 pretty: 
 	indent *.c *.h -kr
