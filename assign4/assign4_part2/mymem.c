@@ -73,6 +73,15 @@ static void insertAfter(struct memoryList* ptr, size_t sz) {
 	fixHoles();
 }
 
+void allocate(struct memoryList* ptr, int requested)
+{
+	size_t nextSize = ptr->size - requested;
+	ptr->alloc = 1;
+	ptr->size = requested;
+	currentSize += requested;
+	if (nextSize > 0)
+		insertAfter(ptr, nextSize);
+}
 /*************************************************************/
 
 
@@ -138,18 +147,13 @@ void *mymalloc(size_t requested)
 		case First:
 			for (struct memoryList *ptr = head; ptr != NULL; ptr = ptr->next) {
 				if (ptr->alloc == 0 && ptr->size >= requested) {
-					size_t nextSize = ptr->size - requested;
-					ptr->alloc = 1;
-					ptr->size = requested;
-					currentSize += requested;
-					if (nextSize > 0)
-						insertAfter(ptr,nextSize);
+					allocate(ptr,requested);
 					return ptr->ptr;
 				}
 			}
 			return NULL;
 		case Best:
-	 		return NULL;
+			return NULL;
 		case Worst:
 			return NULL;
 		case Next:
