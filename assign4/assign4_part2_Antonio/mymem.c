@@ -89,11 +89,14 @@ void *mymalloc(size_t requested)
 			block = first_block(requested);
 			break;
 		case Best:
-	            return NULL;
+	        block = best_block(requested);
+			break;
 		case Worst:
-	            return NULL;
+	        block = worst_block(requested);
+			break;
 		case Next:
-	            return NULL;
+	        block = next_block(requested);
+			break;
 		}
 	default:
 		printf("No strategies has been set. Try Again\n");
@@ -105,7 +108,7 @@ void *mymalloc(size_t requested)
 	}
 
 	if (block->size > requested){
-		struct memoryList* remainder = malloc(sizeof(struct memoryLIst));
+		struct memoryList* remainder = malloc(sizeof(struct memoryList));
 
 		// insert into linked list
 		remainder->next = block->next;
@@ -132,6 +135,40 @@ void *mymalloc(size_t requested)
 /* Frees a block of memory previously allocated by mymalloc. */
 void myfree(void* block)
 {
+	struct memoryList* blockContainer = head;
+	do{
+		if (blockContainer->ptr == block)
+			break;
+	} while ((blockContainer = blockContainer->next) != head);
+
+	blockContainer->alloc = 0;
+
+	if ((blockContainer->last->alloc) &&(blockContainer != head)){
+		struct memoryList* previousBlock = blockContainer->last;
+		previousBlock->next = blockContainer->next;
+		previousBlock->next->last = previousBlock;
+		previousBlock->size += blockContainer->size;
+
+		if (next == blockContainer){
+			next = previousBlock;
+		}
+
+		free(blockContainer);
+		blockContainer = prev;
+	}
+
+	if (!(blockContainer->next->alloc) && (blockContainer->next != head)){
+		struct memoryList* secondBlock = blockContainer->next;
+		blockContainer->next = secondBlock->next;
+		blockContainer->next->last = blockContainer;
+		blockContainer->size += secondBlock->size;
+
+		if (next == secondBlock){
+			next = blockContainer;
+		}
+
+		free(secondBlock);
+	}
 	return;
 }
 
@@ -142,9 +179,10 @@ void myfree(void* block)
  */
 
 
-struct memoryList *first_block(size_t requested)
+struct memoryList* first_block(size_t requested)
 {
 	struct memoryList *index = head;
+
 	do {
 		if(!index->alloc) && index->size >= requested){
 			return index;
@@ -153,39 +191,111 @@ struct memoryList *first_block(size_t requested)
 
 	return NULL;
 }
+
+struct memoryList* best_block(size_t requested)
+{
+	struct memoryList* index = head, *smallestBlock = NULL;
+
+	do {
+		if (!(index->alloc) && (!smallestBlock || index->size < smallestBlock->size) && index->size >= requested)
+			smallestBlock = index;
+	} while((index = index->next) != head);
+
+	return smallestBlock;
+}
+
+struct memoryList* worst_block(size_t requested)
+{
+	struct memoryList* index = head, *largestBlock = NULL;
+
+	do {
+		if(!(index->alloc) && (!largestBlock || index->size > largestBlock->size))
+			largestBlock = index;
+	} while ((index = index->next) != head);
+
+	if (largestBlock->size >= requested)
+		return largestBlock;
+	else 
+		return NULL;
+}
+
+struct memoryList* next_block(size_t requested)
+{
+	struct memoryList* startingBlock = next;
+
+	do {
+		if((next->size >= requested) && !(next->alloc))
+			return next;
+	} while ((next = next->next) != startingBlock);
+
+	return NULL;
+}
 /* Get the number of contiguous areas of free space in memory. */
 int mem_holes()
 {
-	return 0;
+	return mem_small_free(mySize + 1);
 }
 
 /* Get the number of bytes allocated */
 int mem_allocated()
 {
-	return 0;
+	return mySize - mem_free();
 }
 
 /* Number of non-allocated bytes */
 int mem_free()
 {
-	return 0;
+	int count = 0;
+
+	struct memoryList* index = head;
+	do {
+		if(!(index->alloc)){
+			count += index->size;
+		}
+	} while ((index = index->next) != head);
+
+	return count;
 }
 
 /* Number of bytes in the largest contiguous area of unallocated memory */
 int mem_largest_free()
 {
-	return 0;
+	int maxSize = 0;
+
+	struct memoryList* index = head;
+	do {
+		if ((index->size > maxSize) && !(index->alloc))
+			maxSize = index->size;
+	} while ((index = Index->next) != head);
+
+	return maxSize;
 }
 
 /* Number of free blocks smaller than "size" bytes. */
 int mem_small_free(int size)
 {
-	return 0;
+	int countBlocks = 0;
+
+	struct memoryList* index = head;
+	do {
+		if(index->size <= size)
+			countBlocks += !(index->alloc);
+	} while ((index = index->next) != head);
+
+	return countBlocks;
 }       
 
 char mem_is_alloc(void *ptr)
 {
-        return 0;
+	struct memoryList* index = head;
+	while(index->next != head){
+		if (ptr < index->next->ptr){
+			return index->alloc;
+		}
+		index = index->next;
+	}
+
+    return index->alloc;
 }
 
 /* 
