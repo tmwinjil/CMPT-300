@@ -55,7 +55,8 @@ static void fixHoles(void)
 }
 
 //Creates a block of free space after allocation.
-static void insertAfter(struct memoryList* ptr, size_t sz) {
+static void insertAfter(struct memoryList* ptr, size_t sz)
+{
 	struct memoryList* newNode;
 	newNode = malloc(sizeof(struct memoryList));
 	newNode->next = ptr->next;
@@ -153,28 +154,45 @@ void *mymalloc(size_t requested)
 			}
 			return NULL;
 		case Best:
-			return NULL;
-		case Worst:
-			return NULL;
-		case Next:
-		for (struct memoryList *ptr = next; ptr != NULL; ptr = ptr->next) {
-				if (ptr->alloc == 0 && ptr->size >= requested) {
-					size_t nextSize = ptr->size - requested;
-					ptr->alloc = 1;
-					ptr->size = requested;
-					currentSize += requested;
-					if (nextSize > 0)
-						insertAfter(ptr,nextSize);
-					next = ptr->next;
-					if (next == NULL) {
-						next = head;
-					}
-					return ptr->ptr;
+			next = NULL; //next will point to the best fit slot
+			for (struct memoryList *ptr = head; ptr != NULL; ptr = ptr->next) {
+				if (ptr->alloc == 0 && ptr->size >= requested && (next == NULL || ptr->size < next->size)) {
+						next = ptr;
 				}
 			}
-	        return NULL;
-	  }
-	return NULL;
+			if (next != NULL) {
+				allocate(next, requested);
+				return next->ptr;
+			}
+			return NULL;
+		case Worst:
+			next = NULL; //next will point to the best fit slot
+			for (struct memoryList *ptr = head; ptr != NULL; ptr = ptr->next) {
+				if (ptr->alloc == 0 && ptr->size >= requested && (next == NULL || ptr->size > next->size)) {
+						next = ptr;
+				}
+			}
+			if (next != NULL) {
+				allocate(next, requested);
+				return next->ptr;
+			}
+			return NULL;
+		case Next:
+		if (next->alloc == 0 && next->size >= requested) {
+			struct memoryList *temp = next;
+			allocate(temp, requested);
+			next = (temp->next != NULL) ? temp->next : head;
+			return temp->ptr;
+		}
+		for (struct memoryList *ptr = (next->next != NULL) ? next->next : head ; ptr != next; ptr = (ptr->next != NULL) ? ptr->next : head) {
+				if (ptr->alloc == 0 && ptr->size >= requested) {
+					allocate(ptr, requested);
+					next = ptr;//(ptr != NULL) ? ptr : head;
+					return ptr->ptr;
+				}
+		}
+		return NULL;
+	}
 }
 
 /* Frees a block of memory previously allocated by mymalloc. */
