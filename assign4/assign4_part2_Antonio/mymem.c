@@ -45,6 +45,59 @@ static struct memoryList *next;
 		- "next" (next-fit)
    sz specifies the number of bytes that will be available, in total, for all mymalloc requests.
 */
+/************ANTONIO'S HELPER FUNCTION************/
+static struct memoryList* first_block(size_t requested)
+{
+	struct memoryList *index = head;
+
+	do {
+		if((!index->alloc) && index->size >= requested){
+			return index;
+		}
+	} while((index = index->next) != head);
+
+	return NULL;
+}
+
+static struct memoryList* best_block(size_t requested)
+{
+	struct memoryList* index = head, *smallestBlock = NULL;
+
+	do {
+		if (!(index->alloc) && (!smallestBlock || index->size < smallestBlock->size) && index->size >= requested)
+			smallestBlock = index;
+	} while((index = index->next) != head);
+
+	return smallestBlock;
+}
+
+static struct memoryList* worst_block(size_t requested)
+{
+	struct memoryList* index = head, *largestBlock = NULL;
+
+	do {
+		if(!(index->alloc) && (!largestBlock || index->size > largestBlock->size))
+			largestBlock = index;
+	} while ((index = index->next) != head);
+
+	if (largestBlock->size >= requested)
+		return largestBlock;
+	else 
+		return NULL;
+}
+
+static struct memoryList* next_block(size_t requested)
+{
+	struct memoryList* startingBlock = next;
+
+	do {
+		if((next->size >= requested) && !(next->alloc))
+			return next;
+	} while ((next = next->next) != startingBlock);
+
+	return NULL;
+}
+/************END OF HELPER FUNCTIONS************/
 
 void initmem(strategies strategy, size_t sz)
 {
@@ -56,7 +109,7 @@ void initmem(strategies strategy, size_t sz)
 	if (myMemory != NULL) free(myMemory); /* in case this is not the first time initmem2 is called */
 
 	/* TODO: release any other memory you were using for bookkeeping when doing a re-initialization! */
-	if (head) free(head)
+	if (head) free(head);
 
 	myMemory = malloc(sz);
 	
@@ -97,13 +150,13 @@ void *mymalloc(size_t requested)
 		case Next:
 	        block = next_block(requested);
 			break;
-		}
-	default:
+		default:
 		printf("No strategies has been set. Try Again\n");
 		return NULL;
+	}
 
 	if (!block){
-		printf("Not a valid block!\n")
+		printf("Not a valid block!\n");
 		return NULL;
 	}
 
@@ -112,13 +165,13 @@ void *mymalloc(size_t requested)
 
 		// insert into linked list
 		remainder->next = block->next;
-		reminader->next->last = remainder;
-		raminder->last = block;
+		remainder->next->last = remainder;
+		remainder->last = block;
 		block->next =remainder;
 
 		// divide up the allocated memory
-		remainder->size = block->(size - requested);
-		reminader->alloc = 0;
+		remainder->size = block->size - requested;
+		remainder->alloc = 0;
 		remainder->ptr = block->ptr + requested;
 		block->size =requested;
 		next = remainder;
@@ -126,7 +179,7 @@ void *mymalloc(size_t requested)
 		next = block->next;
 	}
 
-	block > alloc = 1;
+	block->alloc = 1;
 	
 	return block->ptr;
 }
@@ -152,9 +205,9 @@ void myfree(void* block)
 		if (next == blockContainer){
 			next = previousBlock;
 		}
-
-		free(blockContainer);
-		blockContainer = prev;
+		blockContainer = blockContainer->last; //TK-Added to address comment on line 210(2 lines down)
+		free(blockContainer->next); //TK-was previously free(blockContainer). Please address next comment then return to this previous state
+		/*blockContainer = prev;*/ //TK- What was supposed to be here? You don't have a global variable called prev and havn't declared one in the function. Is this next->prev?
 	}
 
 	if (!(blockContainer->next->alloc) && (blockContainer->next != head)){
@@ -178,58 +231,6 @@ void myfree(void* block)
  * memory pool this module manages via initmem/mymalloc/myfree. 
  */
 
-
-struct memoryList* first_block(size_t requested)
-{
-	struct memoryList *index = head;
-
-	do {
-		if(!index->alloc) && index->size >= requested){
-			return index;
-		}
-	} while((index = index->next) != head);
-
-	return NULL;
-}
-
-struct memoryList* best_block(size_t requested)
-{
-	struct memoryList* index = head, *smallestBlock = NULL;
-
-	do {
-		if (!(index->alloc) && (!smallestBlock || index->size < smallestBlock->size) && index->size >= requested)
-			smallestBlock = index;
-	} while((index = index->next) != head);
-
-	return smallestBlock;
-}
-
-struct memoryList* worst_block(size_t requested)
-{
-	struct memoryList* index = head, *largestBlock = NULL;
-
-	do {
-		if(!(index->alloc) && (!largestBlock || index->size > largestBlock->size))
-			largestBlock = index;
-	} while ((index = index->next) != head);
-
-	if (largestBlock->size >= requested)
-		return largestBlock;
-	else 
-		return NULL;
-}
-
-struct memoryList* next_block(size_t requested)
-{
-	struct memoryList* startingBlock = next;
-
-	do {
-		if((next->size >= requested) && !(next->alloc))
-			return next;
-	} while ((next = next->next) != startingBlock);
-
-	return NULL;
-}
 /* Get the number of contiguous areas of free space in memory. */
 int mem_holes()
 {
@@ -266,7 +267,7 @@ int mem_largest_free()
 	do {
 		if ((index->size > maxSize) && !(index->alloc))
 			maxSize = index->size;
-	} while ((index = Index->next) != head);
+	} while ((index = index->next) != head);
 
 	return maxSize;
 }
