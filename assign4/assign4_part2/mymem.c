@@ -1,3 +1,12 @@
+/**
+ * @authors:	Takunda Mwinjilo	(tmwinjil@sfu.ca) - 301344066
+ * 				Antonio Kim			(antoniok@sfu.ca) - 301333584
+ *
+ * @date:		Saturday December 7th 2019
+ * 
+ * @source:		CMPT300 (Nathaniel Payne Fall 2019) - Assignment 4 part 2 	
+**/
+
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -32,7 +41,7 @@ void *myMemory = NULL;
 static struct memoryList *head;
 static struct memoryList *next;
 
-/***************MY FUNCTIONS************************/
+/***************HELPER FUNCTIONS************************/
 static void fixHoles(void)
 {
 	struct memoryList *temp;
@@ -41,11 +50,13 @@ static void fixHoles(void)
 		if (temp->alloc == 0 && temp->next != NULL) {
 			if (temp->next->alloc == 0) {
 				struct memoryList *deadNode;
-				deadNode = temp->next;
+				deadNode = temp->next;//The 2nd free node is merged with the first
 				temp->size += deadNode->size;
 				temp->next = deadNode->next;
 				if (deadNode->next != NULL)
 					deadNode->next->last = temp;
+				if (deadNode == next)
+					next = deadNode->last;//if the node we are about to delete is the next node's ptr.
 				free(deadNode);
 				continue;
 			}
@@ -74,7 +85,7 @@ static void insertAfter(struct memoryList* ptr, size_t sz)
 	fixHoles();
 }
 
-void allocate(struct memoryList* ptr, int requested)
+static void allocate(struct memoryList* ptr, int requested)
 {
 	size_t nextSize = ptr->size - requested;
 	ptr->alloc = 1;
@@ -83,9 +94,7 @@ void allocate(struct memoryList* ptr, int requested)
 	if (nextSize > 0)
 		insertAfter(ptr, nextSize);
 }
-/*************************************************************/
-
-
+/***************END OF HELPER FUNCTIONS************************/
 
 /* initmem must be called prior to mymalloc and myfree.
 
@@ -135,6 +144,7 @@ void initmem(strategies strategy, size_t sz)
  *  Otherwise, it returns a pointer to the newly allocated block.
  *  Restriction: requested >= 1 
  */
+
 void *mymalloc(size_t requested)
 {
 	assert((int)myStrategy > 0);
@@ -180,14 +190,14 @@ void *mymalloc(size_t requested)
 		case Next:
 		if (next->alloc == 0 && next->size >= requested) {
 			struct memoryList *temp = next;
-			allocate(temp, requested);
+			allocate(next, requested);
 			next = (temp->next != NULL) ? temp->next : head;
 			return temp->ptr;
 		}
 		for (struct memoryList *ptr = (next->next != NULL) ? next->next : head ; ptr != next; ptr = (ptr->next != NULL) ? ptr->next : head) {
 				if (ptr->alloc == 0 && ptr->size >= requested) {
 					allocate(ptr, requested);
-					next = ptr;//(ptr != NULL) ? ptr : head;
+					next = (ptr->next != NULL) ? ptr->next : head;
 					return ptr->ptr;
 				}
 		}
@@ -340,28 +350,6 @@ strategies strategyFromString(char * strategy)
 /* Use this function to print out the current contents of memory. */
 void print_memory()
 {
-#ifdef DEBUG
-	FILE* fp;
-	fp = fopen("tk_test.txt","a");
-	struct memoryList *temp,*prev;
-	temp = head;
-	prev = NULL;
-	int count = 0;
-	int size = 0;
-	fprintf(fp,"Printing memoryList:\n");
-	while (temp != NULL && count <= 100) {
-		if (prev == temp) {
-			fprintf(fp,"ERROR in LIST STRUCTURE\n");
-		}
-		fprintf(fp,"block %d: alloc: %d size %d \n", count, temp->alloc, temp->size);
-		size += temp->size;
-		prev = temp;
-		temp = temp->next;
-		count++;
-	}
-	fprintf(fp, "Total Size: %d bytes\n\n",size);
-	fclose(fp);
-#endif
 	return;
 }
 
