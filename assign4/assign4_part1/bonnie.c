@@ -277,7 +277,7 @@ int bonnie_main(int argc, char **argv)
 /*		1. Print in the monitor the results from the         */
 /*              operations the program supports.                     */
 /*********************************************************************/
-/* OUTPUT: doesn´t return any value because it is void               */
+/* OUTPUT: doesnï¿½t return any value because it is void               */
 /*********************************************************************/
 
 static void report(char *machine, off_t size)
@@ -327,7 +327,7 @@ static void report(char *machine, off_t size)
 /*		1. If Create Flag is one                             */
 /*		 i) Checks if the file is unlinked                   */
 /*		  a) If it is not returns error                      */
-/*		 ii) Obatain File Descriptor with proper parameters  */
+/*		 ii) Obtain File Descriptor with proper parameters  */
 /*		  and flags.NOTE: Use man pages to view the specific */
 /*		  parameters open uses.  Make sure you understand    */
 /*		  the return values, and see the errors the function */
@@ -345,7 +345,7 @@ static void report(char *machine, off_t size)
 /*		returns)         	                             */
 /*		3. Check stream					     */
 /*********************************************************************/
-/* OUTPUT: doesn´t return any value because it is void               */
+/* OUTPUT: doesnï¿½t return any value because it is void               */
 /*********************************************************************/
 
 static void newfile(char *name, int *fd, FILE ** stream, int create)
@@ -377,7 +377,7 @@ static void newfile(char *name, int *fd, FILE ** stream, int create)
 /*		4. Close file                                        */
 /*		5. Call get_delta_t to find the performance of putc  */
 /*********************************************************************/
-/* OUTPUT: doesn´t return any value because it is void               */
+/* OUTPUT: doesnï¿½t return any value because it is void               */
 /*********************************************************************/
 
 static void fill_file_char()
@@ -413,7 +413,7 @@ static void fill_file_char()
 /*		4. Close file                                        */
 /*		5. Call get_delta_t to find the performance of putc  */
 /*********************************************************************/
-/* OUTPUT: doesn´t return any value because it is void               */
+/* OUTPUT: doesnï¿½t return any value because it is void               */
 /*********************************************************************/
 static void fill_file_block()
 {
@@ -462,7 +462,7 @@ static void fill_file_block()
 /*		7. Close file                                        */
 /*		8. Call get_delta_t to find the performance of putc  */
 /*********************************************************************/
-/* OUTPUT: doesn´t return any value because it is void               */
+/* OUTPUT: doesnï¿½t return any value because it is void               */
 /*********************************************************************/
 
 static void file_read_rewrite_block()
@@ -511,7 +511,7 @@ static void file_read_rewrite_block()
 /*		7. Close file                                        */
 /*		8. Call get_delta_t to find the performance of getc  */
 /*********************************************************************/
-/* OUTPUT: doesn´t return any value because it is void               */
+/* OUTPUT: doesnï¿½t return any value because it is void               */
 /*********************************************************************/
 
 static void file_read_getc()
@@ -554,7 +554,7 @@ static void file_read_getc()
 /*		7. Close file                                        */
 /*		8. Call get_delta_t to find the performance of getc  */
 /*********************************************************************/
-/* OUTPUT: doesn´t return any value because it is void               */
+/* OUTPUT: doesnï¿½t return any value because it is void               */
 /*********************************************************************/
 
 static void file_read_chunk()
@@ -583,7 +583,7 @@ static void file_read_chunk()
 /* PROCESS:                                                          */
 /*		1. Presents all the options the program has          */
 /*********************************************************************/
-/* OUTPUT: doesn´t return any value because it is void               */
+/* OUTPUT: doesnï¿½t return any value because it is void               */
 /*********************************************************************/
 
 static void usage()
@@ -601,7 +601,7 @@ static void usage()
 /*		1. Call time_so_far() and store it in last_timestamp */
 /*		2. Call cpu_so_far() and store it in last_cpustamp   */
 /*********************************************************************/
-/* OUTPUT: doesn´t return any value because it is void               */
+/* OUTPUT: doesnï¿½t return any value because it is void               */
 /*********************************************************************/
 
 static void timestamp()
@@ -624,7 +624,7 @@ static void timestamp()
 /*          of the global variable last_cpustamp obtaining the       */
 /*          amount of CPU procedure spent.                           */
 /*********************************************************************/
-/* OUTPUT: doesn´t return any value because it is void               */
+/* OUTPUT: doesnï¿½t return any value because it is void               */
 /*********************************************************************/
 
 static void get_delta_t(test)
