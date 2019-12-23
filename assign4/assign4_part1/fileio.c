@@ -20,15 +20,20 @@ int file_read(char *path, int offset, void *buffer, size_t bufbytes)
         return IOERR_INVALID_ARGS; 
 
     int fd = r_open2(path, O_RDONLY);
-    if (fd == -1)//file failed to open
+    if (fd == -1) //file failed to open
         return IOERR_INVALID_PATH;
-    if(lseek(fd, (off_t) offset, SEEK_SET) == (off_t) -1)
+
+    if(lseek(fd, (off_t) offset, SEEK_SET) == (off_t) -1) {
+        r_close(fd);
         return IOERR_POSIX;
+    }
     size_t bytesRd = r_read(fd, buffer, bufbytes);
-    if (bytesRd == -1)
+    r_close(fd);
+    if (bytesRd == -1) {
        return IOERR_POSIX;
-    else
+    }else {
         return (int) bytesRd;
+    }
 }
 
 int file_info(char *path, void *buffer, size_t bufbytes)
@@ -57,10 +62,13 @@ int file_write(char *path, int offset, void *buffer, size_t bufbytes)
     int fd = r_open2(path, O_WRONLY);
     if (fd == -1)//file failed to open
         return IOERR_INVALID_PATH;
-    if(lseek(fd, (off_t) offset, SEEK_SET) == (off_t) -1)
+    if(lseek(fd, (off_t) offset, SEEK_SET) == (off_t) -1) {
+        r_close(fd);
         return IOERR_POSIX;
+    }
     size_t bytesRd = r_write(fd, buffer, bufbytes);
-    if (bytesRd == -1 || !r_close(fd))
+    r_close(fd);
+    if (bytesRd == -1)
        return IOERR_POSIX;
     else
         return (int) bytesRd;
